@@ -50,6 +50,27 @@ success_tests! {
         expected: "14"
     },
     {
+        name: print_num,
+        file: "print_num.snek",
+        expected: "5\n5",
+    },
+    {
+        name: print_add,
+        file: "print_add.snek",
+        expected: "8\n8",
+    },
+    // {
+    //     name: block_print_input_num,
+    //     file: "block_print.snek",
+    //     input: 12,
+    //     expected: "37\n12",
+    // },
+    // {
+    //     name: block_print_input_none,
+    //     file: "block_print.snek",
+    //     expected: "37\nfalse",
+    // },
+    {
         name: input_num,
         file: "input.snek",
         input: "4",

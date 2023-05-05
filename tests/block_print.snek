@@ -1,0 +1,2 @@
+(block
+(print 37) (print input))

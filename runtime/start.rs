@@ -22,11 +22,17 @@ pub extern "C" fn snek_error(errcode: i64) {
     std::process::exit(1);
 }
 
-// // how to detect num of bits required to represent number 
-// fn num_bits_required(num: i64) -> u32 {
-//     let u = num.abs() as u64;
-//     64 - u.leading_zeros()
-// }
+#[export_name = "\x01snek_print"]
+pub extern "C" fn snek_print(arg1: i64) -> i64 {
+    if arg1 == 3 { println!("true"); }
+    else if arg1 == 1 { println!("false"); }
+    else if arg1 % 2 == 0 {
+        println!("{}", (arg1 >> 1));
+    } else {
+        println!("Unknown value: {}", arg1);
+    }
+    return arg1;
+}
 
 fn parse_input(input: &str) -> i64 {
     // TODO: parse the input string into internal value representation

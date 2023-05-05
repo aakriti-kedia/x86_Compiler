@@ -48,6 +48,8 @@ enum Instr {
     IJe(String),
     IJmp(String),
     IJne(String),
+    IPush(Val),
+    IPop(Val),
     // IJz(String),
     // IJnz(String),
     // ILoop(String), 
@@ -55,6 +57,7 @@ enum Instr {
     // IRet(),
     ISar(Val, u64), 
     IJc(String), 
+    ICall(String),
     // IJnc(String),
     IJo(String),
     ICmovb(Val, Val),
@@ -68,6 +71,7 @@ enum Op1 {
     Sub1,
     IsNum, 
     IsBool,
+    Print,
 }
 
 #[derive(Debug)]
@@ -117,14 +121,14 @@ fn compile_to_instrs(e: & Expr, si: i32, env: & HashMap<String, i32>, break_labe
         }, 
         Expr::True => {
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(TRUE_INT)))
-        }
+        },
         Expr::False => {
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)))
-        }
+        },
         Expr::Input => {
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Reg(Reg::RDI)));
           instr_vector.extend(check_overflow(Val::Reg(Reg::RAX)))
-        }
+        },
         Expr::Id(s) => {
             println!("env {:?}, s = {}", *env, s);
             if env.contains_key(s) {
@@ -132,7 +136,7 @@ fn compile_to_instrs(e: & Expr, si: i32, env: & HashMap<String, i32>, break_labe
             } else {
                 panic!("Unbound variable identifier {}", s);
             }
-        }
+        },
         Expr::Let(binding, body) => {
             let mut nenv = env.clone();
             let mut si_local = si;
@@ -183,6 +187,26 @@ fn compile_to_instrs(e: & Expr, si: i32, env: & HashMap<String, i32>, break_labe
                 },
                 Op1::IsBool => {
                   instr_vector.extend(check_input_bool(Val::Reg(Reg::RAX)));
+                },
+                Op1::Print => {
+                  // sub offset for RSP
+                  let offset = si * 8;
+                  instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+        
+                  // store rdi on stack 
+                  instr_vector.push(Instr::IPush(Val::Reg(Reg::RDI)));
+        
+                  // put rax in rdi
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::Reg(Reg::RAX)));
+        
+                  // call snek_print fun
+                  instr_vector.push(Instr::ICall("snek_print".to_owned()));
+        
+                  // restore RDI 
+                  instr_vector.push(Instr::IPop(Val::Reg(Reg::RDI)));
+        
+                  // add back offset
+                  instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
                 }
             };
         }, 
@@ -430,6 +454,9 @@ fn instr_to_str(i: &Instr) -> String {
         Instr::IJge(label) => format!("jge {}", label),
         Instr::IJl(label) => format!("jl {}", label),
         Instr::IJle(label) => format!("jle {}", label),
+        Instr::ICall(fun_name) => format!("call {}", fun_name),
+        Instr::IPush(v1) => format!("push {}", val_to_str(v1)),
+        Instr::IPop(v1) => format!("pop {}", val_to_str(v1)),
         // Instr::IJz(label) => format!("jz {}", label),
         // Instr::IJnz(label) => format!("jnz {}", label),
         Instr::ILabel(label, instrs) => format!("{}:{}", label, decode_instrs_vec_to_string(instrs)),
@@ -563,6 +590,7 @@ fn parse_expr(s: &Sexp) -> Expr {
                 [Sexp::Atom(S(op)), e] if op == "sub1" => Expr::UnOp(Op1::Sub1, Box::new(parse_expr(e))),
                 [Sexp::Atom(S(op)), e] if op == "isnum" => Expr::UnOp(Op1::IsNum, Box::new(parse_expr(e))),
                 [Sexp::Atom(S(op)), e] if op == "isbool" => Expr::UnOp(Op1::IsBool, Box::new(parse_expr(e))),
+                [Sexp::Atom(S(op)), e] if op == "print" => Expr::UnOp(Op1::Print, Box::new(parse_expr(e))),
                 [Sexp::Atom(S(op)), e] if op == "loop" => Expr::Loop(Box::new(parse_expr(e))),
                 [Sexp::Atom(S(op)), e] if op == "break" => Expr::Break(Box::new(parse_expr(e))),
                 [Sexp::Atom(S(op)), e1, e2] if op == "let" => Expr::Let(parse_bind(e1), Box::new(parse_expr(e2))),
@@ -576,7 +604,12 @@ fn parse_expr(s: &Sexp) -> Expr {
                 [Sexp::Atom(S(op)), e1, e2] if op == "<=" => Expr::BinOp(Op2::LessEqual, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
 
                 [Sexp::Atom(S(op)), cond_exp, then_exp, else_exp] if op == "if" => Expr::If(Box::new(parse_expr(cond_exp)), Box::new(parse_expr(then_exp)), Box::new(parse_expr(else_exp))),
-                [Sexp::Atom(S(op)), Sexp::Atom(S(id)), exp] if op == "set!" => Expr::Set(id.to_string(), Box::new(parse_expr(exp))),
+                [Sexp::Atom(S(op)), Sexp::Atom(S(id)), exp] if op == "set!" => {
+                  match id.as_ref() {
+                    "true" | "false" | "let" | "block" | "loop" | "break" | "set!" | "input" | "if" => panic!("keyword"),
+                    _ => Expr::Set(id.to_string(), Box::new(parse_expr(exp))),
+                  }
+                }
                 [Sexp::Atom(S(op)), rest @ ..] if op == "block" => {
                   if rest.len() == 0 {
                     panic!("Invalid syntax");
@@ -630,6 +663,7 @@ fn main() -> std::io::Result<()> {
         "
 section .text
 global our_code_starts_here
+extern snek_print
 extern snek_error
 
 throw_error:
