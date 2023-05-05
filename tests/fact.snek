@@ -1,0 +1,15 @@
+(fun (fact n)
+  (let
+    ((i 1) (acc 1))
+    (loop
+      (if (> i n)
+        (break acc)
+        (block
+          (set! acc (* acc i))
+          (set! i (+ i 1))
+        )
+      )
+    )
+  )
+)
+(fact input)
