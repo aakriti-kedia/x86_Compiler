@@ -19,15 +19,885 @@ success_tests! {
         file: "even_odd.snek",
         input: "9",
         expected: "9\nfalse\nfalse",
+    },
+    {
+        name: add1_sub1_int_input_10,
+        file: "add1_sub1_input.snek",
+        input: "10",
+        expected: "10"
+    },
+    {
+        name: simple_if_then_else,
+        file: "simple_if_then_else.snek",
+        expected: "500"
+    },
+    {
+        name: factorial_5,
+        file: "factorial_from_input.snek",
+        input: "5",
+        expected: "120"
+    },
+    {
+        name: power_of_2_calculator_7,
+        file: "power_of_2_calculator.snek",
+        input: "7",
+        expected: "128"
+    },
+    {
+        name: complex_set,
+        file: "complex_set.snek",
+        input: "3",
+        expected: "14"
+    },
+    {
+        name: input_num,
+        file: "input.snek",
+        input: "4",
+        expected: "4",
+    },
+    // {
+    //     name: input_num_min,
+    //     file: "input.snek",
+    //     input: "-9223372036854775808",
+    //     expected: "-9223372036854775808",
+    // },
+    // {
+    //     name: input_num_max,
+    //     file: "input.snek",
+    //     input: "9223372036854775807",
+    //     expected: "9223372036854775807",
+    // },
+    {
+        name: input_num_min,
+        file: "input.snek",
+        input: "-4611686018427387904",
+        expected: "-4611686018427387904",
+    },
+    {
+        name: input_num_max,
+        file: "input.snek",
+        input: "4611686018427387903",
+        expected: "4611686018427387903",
+    },
+    {
+        name: input_true,
+        file: "input.snek",
+        input: "true",
+        expected: "true",
+    },
+    {
+        name: input_false,
+        file: "input.snek",
+        input: "false",
+        expected: "false",
+    },
+    {
+        name: input_none,
+        file: "input.snek",
+        expected: "false",
+    },
+    {
+        name: eq_num_num_true,
+        file: "eq_num.snek",
+        input: "3",
+        expected: "true",
+    },
+    {
+        name: eq_num_num_false,
+        file: "eq_num.snek",
+        input: "4",
+        expected: "false",
+    },
+
+    {
+        name: g_num_num_true,
+        file: "g_num.snek",
+        input: "5",
+        expected: "true",
+    },
+    {
+        name: g_num_num_false,
+        file: "g_num.snek",
+        input: "2",
+        expected: "false",
+    },
+
+    {
+        name: ge_num_num_true,
+        file: "ge_num.snek",
+        input: "3",
+        expected: "true",
+    },
+    {
+        name: ge_num_num_false,
+        file: "ge_num.snek",
+        input: "2",
+        expected: "false",
+    },
+
+    {
+        name: l_num_num_true,
+        file: "l_num.snek",
+        input: "2",
+        expected: "true",
+    },
+    {
+        name: l_num_num_false,
+        file: "l_num.snek",
+        input: "4",
+        expected: "false",
+    },
+    {
+        name: le_num_num_true,
+        file: "le_num.snek",
+        input: "3",
+        expected: "true",
+    },
+    {
+        name: le_num_num_false,
+        file: "le_num.snek",
+        input: "4",
+        expected: "false",
+    },
+    {
+        name: true_sexp,
+        file: "true_sexp.snek",
+        expected: "true",
+    },
+    {
+        name: false_sexp,
+        file: "false_sexp.snek",
+        expected: "false",
+    },
+    {
+        name: sub_pos_neg,
+        file: "sub_pos_neg.snek",
+        expected: "10",
+    },
+    {
+        name: sub_neg_pos,
+        file: "sub_neg_pos.snek",
+        expected: "-10",
+    },
+    {
+        name: sub_neg_neg_pos_res,
+        file: "sub_neg_neg_pos_res.snek",
+        expected: "20",
+    },
+    {
+        name: sub_neg_neg_neg_res,
+        file: "sub_neg_neg_neg_res.snek",
+        expected: "-10",
+    },
+    {
+        name: nested_sub,
+        file: "nested_sub.snek",
+        expected: "-76",
+    },
+    {
+        name: nested_sub_neg,
+        file: "nested_sub_neg.snek",
+        expected: "-116",
+    },
+
+    {
+        name: add_pos_pos,
+        file: "add_pos_pos.snek",
+        expected: "20",
+    },
+    {
+        name: add_pos_neg,
+        file: "add_pos_neg.snek",
+        expected: "-10",
+    },
+    {
+        name: add_neg_pos,
+        file: "add_neg_pos.snek",
+        expected: "10",
+    },
+    {
+        name: add_neg_neg,
+        file: "add_neg_neg.snek",
+        expected: "-20",
+    },
+    {
+        name: nested_add,
+        file: "nested_add.snek",
+        expected: "124",
+    },
+    {
+        name: nested_add_neg,
+        file: "nested_add_neg.snek",
+        expected: "-16",
+    },
+
+    {
+        name: times_pos_pos,
+        file: "times_pos_pos.snek",
+        expected: "75",
+    },
+    {
+        name: times_pos_neg,
+        file: "times_pos_neg.snek",
+        expected: "-75",
+    },
+    {
+        name: times_neg_neg,
+        file: "times_neg_neg.snek",
+        expected: "75",
+    },
+
+    {
+        name: num,
+        file: "num.snek",
+        expected: "5",
+    },
+
+    {
+        name: nested_binop1,
+        file: "nested_binop1.snek",
+        expected: "-60",
+    },
+    {
+        name: nested_binop2,
+        file: "nested_binop2.snek",
+        expected: "10",
+    },
+    {
+        name: nested_binop3,
+        file: "nested_binop3.snek",
+        expected: "-40",
+    },
+    {
+        name: nested_binop4,
+        file: "nested_binop4.snek",
+        expected: "22",
+    },
+    {
+        name: nested_binop5,
+        file: "nested_binop5.snek",
+        expected: "-10",
+    },
+    {
+        name: nested_binop6,
+        file: "nested_binop6.snek",
+        expected: "10",
+    },
+    {
+        name: nested_binop_unop,
+        file: "nested_binop_unop.snek",
+        expected: "22",
+    },
+    {
+        name: let_one_var,
+        file: "let_one_var.snek",
+        expected: "5",
+    },
+    {
+        name: let_two_var,
+        file: "let_two_var.snek",
+        expected: "6",
+    },
+    {
+        name: let_two_unary,
+        file: "let_two_unary.snek",
+        expected: "12",
+    },
+    {
+        name: let_two_var_add,
+        file: "let_two_var_add.snek",
+        expected: "20",
+    },
+    {
+        name: let_two_unary_bin,
+        file: "let_two_unary_bin.snek",
+        expected: "21",
+    },
+    {
+        name: let_add1,
+        file: "let_add1.snek",
+        expected: "6",
+    },
+    {
+        name: let_add,
+        file: "let_add.snek",
+        expected: "15",
+    },
+    {
+        name: input_add_1,
+        file: "input_add_1.snek",
+        input: "4",
+        expected: "5",
+    },
+    {
+        name: false_val,
+        file: "false_val.snek",
+        expected: "false",
+    },
+    {
+        name: compare_g_false,
+        file: "compare_g_false.snek",
+        expected: "false",
+    },
+    {
+        name: compare_g_true,
+        file: "compare_g_true.snek",
+        expected: "true",
+    },
+    {
+        name: compare_ge_false,
+        file: "compare_ge_false.snek",
+        expected: "false",
+    },
+    {
+        name: compare_ge_true,
+        file: "compare_ge_true.snek",
+        expected: "true",
+    },
+    {
+        name: compare_l_false,
+        file: "compare_l_false.snek",
+        expected: "false",
+    },
+    {
+        name: compare_l_true,
+        file: "compare_l_true.snek",
+        expected: "true",
+    },
+    {
+        name: compare_le_false,
+        file: "compare_le_false.snek",
+        expected: "false",
+    },
+    {
+        name: compare_le_true,
+        file: "compare_le_true.snek",
+        expected: "true",
+    },
+    {
+        name: input_compare_1,
+        file: "input_compare.snek",
+        input: "2",
+        expected: "false",
+    },
+    {
+        name: input_compare_2,
+        file: "input_compare.snek",
+        input: "10",
+        expected: "true",
+    },
+    {
+        name: loop_simple,
+        file: "loop_simple.snek",
+        expected: "2",
+    },
+    {
+        name: block_set,
+        file: "block_set.snek",
+        expected: "12",
+    },
+    {
+        name: block_set_last_val,
+        file: "block_set_two_var.snek",
+        expected: "10",
+    },
+    {
+        name: set_simple,
+        file: "set_simple.snek",
+        expected: "10",
+    },
+    {
+        name: is_num_true,
+        file: "is_num_true.snek",
+        expected: "true",
+    },
+    {
+        name: is_num_false,
+        file: "is_num_false.snek",
+        expected: "false",
+    },
+    {
+        name: is_bool_true,
+        file: "is_bool_true.snek",
+        expected: "true",
+    },
+    {
+        name: is_bool_false,
+        file: "is_bool_false.snek",
+        expected: "false",
+    },
+    {
+        name: input_valid,
+        file: "input.snek",
+        input: "10",
+        expected: "10",
+    },
+    {
+        name: input_negative,
+        file: "input.snek",
+        input: "-10",
+        expected: "-10",
+    },
+    {
+        name: if_true,
+        file: "if_true.snek",
+        expected: "true",
+    },
+    {
+        name: if_false,
+        file: "if_false.snek",
+        expected: "false",
+    },
+    {
+        name: if_compare_bool_true,
+        file: "if_compare_bool_true.snek",
+        expected: "true",
+    },
+    {
+        name: if_compare_bool_false,
+        file: "if_compare_bool_false.snek",
+        expected: "false",
+    },
+    {
+        name: if_num,
+        file: "if_num.snek",
+        expected: "1",
+    },
+    {
+        name: loop_eg,
+        file: "loop_eg.snek",
+        expected: "-6",
+    },
+    {
+        name: if_num_2,
+        file: "if_num_2.snek",
+        expected: "true",
+    },
+    {
+        name: multiply,
+        file: "mult.snek",
+        input: "1537228672809129301",
+        expected: "4611686018427387903",
+    },
+    {
+        name: multiply2,
+        file: "mult.snek",
+        input: "1537228672809129300",
+        expected: "4611686018427387900",
+    },
+    {
+        name: multiply3,
+        file: "mult.snek",
+        input: "-1537228672809129301",
+        expected: "-4611686018427387903",
+    },
+    {
+        name: multiply_neg,
+        file: "mult.snek",
+        input: "-4",
+        expected: "-12",
+    },
+    {
+        name: multiply_neg_neg,
+        file: "mult_neg.snek",
+        input: "-5",
+        expected: "20",
+    },
+    {
+        name: evaluation_order,
+        file: "evaluation_order.snek",
+        expected: "3",
     }
 }
 
-runtime_error_tests! {}
+runtime_error_tests! {
+    {
+        name: invalid_argument,
+        file: "invalid_argument.snek",
+        expected: "invalid argument",
+    },
+    {
+        name: input_compare_3,
+        file: "input_compare.snek",
+        input: "true",
+        expected: "invalid argument",
+    },
+    {
+        name: add1_sub1_int_input_true,
+        file: "add1_sub1_input.snek",
+        input: "true",
+        expected: "invalid argument"
+    },
+    {
+        name: add1_sub1_int_input_default_false,
+        file: "add1_sub1_input.snek",
+        expected: "invalid argument"
+    },
+    {
+        name: add1_sub1_int_input_default_overflow_after_one_op,
+        file: "add1_sub1_input.snek",
+        input: "-4611686018427387904",
+        expected: "overflow"
+    },
+    {
+        name: add1_sub1_int_input_default_overflow_from_input,
+        file: "add1_sub1_input.snek",
+        input: "-4611686018427387905",
+        expected: "Invalid"
+    },
+    {
+        name: factorial_1000,
+        file: "factorial_from_input.snek",
+        input: "1000",
+        expected: "overflow"
+    },
+    {
+        name: power_of_2_calculator_1000,
+        file: "power_of_2_calculator.snek",
+        input: "1000",
+        expected: "overflow"
+    },
+    {
+        name: power_of_2_calculator_boolean_input,
+        file: "power_of_2_calculator.snek",
+        input: "true",
+        expected: "invalid"
+    },
+    {
+        name: compare_invalid,
+        file: "compare_invalid.snek",
+        input: "true",
+        expected: "invalid argument",
+    },
+    {
+        name: compare_invalid_eq,
+        file: "compare_invalid_eq.snek",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_bool_eq,
+        file: "eq_num.snek",
+        input: "true",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_bool_eq2,
+        file: "eq_num.snek",
+        input: "false",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_true_eq,
+        file: "eq_true.snek",
+        input: "1",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_false_eq,
+        file: "eq_false.snek",
+        input: "3",
+        expected: "invalid argument",
+    },
+
+    {
+        name: invalid_num_bool_g,
+        file: "g_num.snek",
+        input: "true",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_bool_g2,
+        file: "g_num.snek",
+        input: "false",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_true_g,
+        file: "g_true.snek",
+        input: "1",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_false_g,
+        file: "g_false.snek",
+        input: "3",
+        expected: "invalid argument",
+    },
+
+    {
+        name: invalid_num_bool_ge,
+        file: "ge_num.snek",
+        input: "true",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_bool_ge2,
+        file: "ge_num.snek",
+        input: "false",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_true_ge,
+        file: "ge_true.snek",
+        input: "1",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_false_ge,
+        file: "ge_false.snek",
+        input: "3",
+        expected: "invalid argument",
+    },
+
+    {
+        name: invalid_num_bool_l,
+        file: "l_num.snek",
+        input: "true",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_bool_l2,
+        file: "l_num.snek",
+        input: "false",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_true_l,
+        file: "l_true.snek",
+        input: "1",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_false_l,
+        file: "l_false.snek",
+        input: "3",
+        expected: "invalid argument",
+    },
+
+    {
+        name: invalid_num_bool_le,
+        file: "le_num.snek",
+        input: "true",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_bool_le2,
+        file: "le_num.snek",
+        input: "false",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_true_le,
+        file: "le_true.snek",
+        input: "1",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_num_false_le,
+        file: "le_false.snek",
+        input: "3",
+        expected: "invalid argument",
+    },
+
+
+    {
+        name: input_invalid,
+        file: "input.snek",
+        input: "10a",
+        expected: "Invalid",
+    },
+    {
+        name: input_invalid2,
+        file: "input.snek",
+        input: "invalid",
+        expected: "Invalid",
+    },
+    {
+        name: input_invalid_overflow,
+        file: "input.snek",
+        input: "36893488147419103000",
+        expected: "Invalid",
+    },
+    {
+        name: input_overflow,
+        file: "input.snek",
+        input: "9223372036854775807",
+        expected: "Invalid",
+    },
+    {
+        name: input_overflow_2,
+        file: "input.snek",
+        input: "-4611686018427387905",
+        expected: "Invalid",
+    },
+    {
+        name: invalid_if_condition,
+        file: "invalid_if_condition.snek",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_type_add,
+        file: "invalid_type_add.snek",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_type_sub,
+        file: "invalid_type_sub.snek",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_type_mult,
+        file: "invalid_type_mult.snek",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_type_add1,
+        file: "invalid_type_add1.snek",
+        expected: "invalid argument",
+    },
+    {
+        name: invalid_type_sub1,
+        file: "invalid_type_sub1.snek",
+        expected: "invalid argument",
+    },
+    {
+        name: overflow_add,
+        file: "overflow_add.snek",
+        expected: "overflow",
+    },
+    {
+        name: overflow_sub,
+        file: "overflow_sub.snek",
+        expected: "overflow",
+    },
+    {
+        name: overflow_mult,
+        file: "overflow_mult.snek",
+        expected: "overflow",
+    },
+    {
+        name: overflow_add1,
+        file: "overflow_add1.snek",
+        expected: "overflow",
+    },
+    {
+        name: overflow_sub1,
+        file: "overflow_sub1.snek",
+        expected: "overflow",
+    },
+    {
+        name: mult_error,
+        file: "mult.snek",
+        input: "1537228672809129302",
+        expected: "overflow",
+    },
+    {
+        name: multiply_neg_error_2,
+        file: "mult.snek",
+        input: "-1537228672809129302",
+        expected: "overflow",
+    },
+}
 
 static_error_tests! {
     {
         name: duplicate_params,
         file: "duplicate_params.snek",
         expected: "",
+    },
+    {
+        name: invalid_let_binding_input,
+        file: "invalid_let_binding_input.snek",
+        expected: "keyword"
+    },
+    {
+        name: invalid_set_updating_input,
+        file: "invalid_set_updating_input.snek",
+        expected: "keyword"
+    },
+    {
+        name: break_outside_loop,
+        file: "single_loop_double_break.snek",
+        expected: "break"
+    },
+    {
+        name: empty_block,
+        file: "empty_block.snek",
+        expected: "Invalid"
+    },
+    {
+        name: invalid_parse,
+        file: "invalid_parse.snek",
+        expected: "Invalid",
+    },
+    {
+        name: let_un_bin_unbound,
+        file: "let_un_bin_unbound.snek",
+        expected: "Unbound variable identifier x",
+    },
+    {
+        name: let_duplicate_binding,
+        file: "let_duplicate_binding.snek",
+        expected: "Duplicate binding",
+    },
+    {
+        name: let_no_binding,
+        file: "let_no_binding.snek",
+        expected: "Invalid",
+    },
+    {
+        name: block_parse_fail,
+        file: "block_parse_fail.snek",
+        expected: "Invalid",
+    },
+    {
+        name: set_unbound,
+        file: "set_unbound.snek",
+        expected: "Unbound variable identifier y",
+    },
+    {
+        name: number_bounds_fail,
+        file: "number_bounds_fail.snek",
+        expected: "Invalid",
+    },
+    {
+        name: sexpr_parse_err,
+        file: "sexpr_parse_err.snek",
+        expected: "Invalid",
+    },
+    {
+        name: invalid_binop,
+        file: "invalid_binop.snek",
+        expected: "Invalid",
+    },
+    {
+        name: invalid_binop2,
+        file: "invalid_binop2.snek",
+        expected: "Invalid",
+    },
+    {
+        name: invalid_binop3,
+        file: "invalid_binop3.snek",
+        expected: "Invalid",
+    },
+    {
+        name: invalid_unop,
+        file: "invalid_unop.snek",
+        expected: "Invalid",
+    },
+    {
+        name: duplicate_binding,
+        file: "duplicate_binding.snek",
+        expected: "Duplicate binding",
+    },
+    {
+        name: break_without_loop,
+        file: "break_without_loop.snek",
+        expected: "break",
+    },
+    {
+        name: invalid_op,
+        file: "invalid_op.snek",
+        expected: "Invalid",
     }
 }
