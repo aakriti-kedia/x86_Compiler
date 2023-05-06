@@ -118,13 +118,141 @@ enum Expr {
     Function(String, Vec<Expr>),
 }
 
-// compiling 
+// helpers 
 
 fn new_label(l: &mut i32, s: &str) -> String {
   let current = *l;
   *l += 1;
   format!("{s}_{current}")
 }
+
+fn check_overflow(_v: Val) -> Vec<Instr> {
+  let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IJo("throw_overflow_error".to_string()));
+  instr_vect
+}
+
+fn check_if_num(v: Val) -> Vec<Instr> {
+  let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
+  instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // should have 0
+  instr_vect
+}
+
+fn check_input_num(v: Val) -> Vec<Instr> {
+  let mut instr_vect = check_if_num(v);
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(3)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(1)));
+  instr_vect.push(Instr::ICmovb(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
+  instr_vect
+}
+
+fn is_num(v: Val) -> Vec<Instr> {
+  let mut instr_vect = check_if_num(v);
+  instr_vect.push(Instr::IJc("throw_error".to_string()));
+  instr_vect
+}
+
+fn check_input_bool(v: Val) -> Vec<Instr> {
+  let mut instr_vect = check_if_bool(v);
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(1)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(3)));
+  instr_vect.push(Instr::ICmovb(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
+  instr_vect
+}
+
+fn check_if_bool(v: Val) -> Vec<Instr> {
+  let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
+  instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // should have 1
+  instr_vect
+}
+
+fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
+  let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1));
+  instr_vect.push(Instr::IXor(Val::Reg(Reg::RBX), v2));
+  instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::Imm(FALSE_INT)));
+  instr_vect.push(Instr::IJne("throw_error".to_string()));
+  instr_vect
+}
+
+// instr to string helpers
+fn instr_to_str(i: &Instr) -> String {
+  match i {
+      Instr::IMov(v1, v2) => format!("mov {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::IAdd(v1, v2) => format!("add {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::ISub(v1, v2) => format!("sub {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::IMul(v1, v2) => format!("imul {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::ICmp(v1, v2) => format!("cmp {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::ICmove(v1, v2) => format!("cmove {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::IJg(label) => format!("jg {}", label),
+      Instr::IJge(label) => format!("jge {}", label),
+      Instr::IJl(label) => format!("jl {}", label),
+      Instr::IJle(label) => format!("jle {}", label),
+      Instr::ICall(fun_name) => format!("call {}", fun_name),
+      Instr::IPush(v1) => format!("push {}", val_to_str(v1)),
+      Instr::IPop(v1) => format!("pop {}", val_to_str(v1)),
+      // Instr::IJz(label) => format!("jz {}", label),
+      // Instr::IJnz(label) => format!("jnz {}", label),
+      Instr::ILabel(label, instrs) => format!("{}:{}", label, decode_instrs_vec_to_string(instrs)),
+      Instr::IJe(label) => format!("je {}", label),
+      Instr::IJc(label) => format!("jc {}", label),
+      Instr::IJo(label) => format!("jo {}", label),
+      // Instr::IJnc(label) => format!("jnc {}", label),
+      Instr::ISar(v1, bits) => format!("sar {}, {}", val_to_str(v1), bits),
+      Instr::IJmp(label) => format!("jmp {}", label),
+      Instr::IJne(label) => format!("jne {}", label),
+      Instr::IXor(v1, v2) => format!("xor {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::ITest(v1, v2) => {
+        match v1 {
+          Val::RegOffset(_, _) => format!("test word{}, {}", val_to_str(v1), val_to_str(v2)),
+          _ => format!("test {}, {}", val_to_str(v1), val_to_str(v2))
+        }
+      },
+      // Instr::ILoop(label) => format!("loop {}", label),
+      // Instr::IBreak(v1) => format!("break {}", val_to_str(v1)),
+      Instr::ICmovb(v1, v2) => format!("cmovb {}, {}", val_to_str(v1), val_to_str(v2)),
+      // Instr::IComment(comment) => format!("; {}", comment),
+      // Instr::IRet() => format!("ret"),
+  }
+}
+
+fn reg_str(reg_name: &Reg) -> String {
+match reg_name {
+    Reg::RAX => "rax", 
+    Reg::RSP => "rsp", 
+    Reg::RBX => "rbx", 
+    Reg::RDI => "rdi", 
+}.to_string()
+}
+
+fn val_to_str(v: &Val) -> String {
+  match v {
+      Val::Reg(reg_name) => {
+        reg_str(reg_name)
+      },
+      Val::Imm(num) => num.to_string(),
+      Val::RegOffset(reg_name, stack_offset) => {
+          let reg_name = reg_str(reg_name);
+          format!("[{} - {}]", reg_name, stack_offset)
+      },
+  }
+}
+
+fn decode_instrs_vec_to_string(vect_instrs: &Vec<Instr>) -> String {
+let mut ans = "".to_owned();
+for inst in vect_instrs.iter() {
+    ans += &("\n".to_owned() + &instr_to_str(&inst));
+    // ans.push_str("\n");
+    // ans.push_str(&instr_to_str(&inst));
+}
+ans.to_string()
+}
+
+// -------
+
+// compiling
  
 fn compile_to_instrs(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &String, l: &mut i32) -> Vec<Instr> {
     let mut instr_vector = Vec::new();
@@ -406,129 +534,6 @@ fn compile_to_instrs(e: & Expr, si: i32, env: & HashMap<String, i32>, break_labe
     instr_vector.to_vec()
 }
 
-fn check_overflow(_v: Val) -> Vec<Instr> {
-  let mut instr_vect = Vec::new();
-  instr_vect.push(Instr::IJo("throw_overflow_error".to_string()));
-  instr_vect
-}
-
-fn check_if_num(v: Val) -> Vec<Instr> {
-  let mut instr_vect = Vec::new();
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
-  instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // should have 0
-  instr_vect
-}
-
-fn check_input_num(v: Val) -> Vec<Instr> {
-  let mut instr_vect = check_if_num(v);
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(3)));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(1)));
-  instr_vect.push(Instr::ICmovb(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
-  instr_vect
-}
-
-fn is_num(v: Val) -> Vec<Instr> {
-  let mut instr_vect = check_if_num(v);
-  instr_vect.push(Instr::IJc("throw_error".to_string()));
-  instr_vect
-}
-
-fn check_input_bool(v: Val) -> Vec<Instr> {
-  let mut instr_vect = check_if_bool(v);
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(1)));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(3)));
-  instr_vect.push(Instr::ICmovb(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
-  instr_vect
-}
-
-fn check_if_bool(v: Val) -> Vec<Instr> {
-  let mut instr_vect = Vec::new();
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
-  instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // should have 1
-  instr_vect
-}
-
-fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
-  let mut instr_vect = Vec::new();
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1));
-  instr_vect.push(Instr::IXor(Val::Reg(Reg::RBX), v2));
-  instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::Imm(FALSE_INT)));
-  instr_vect.push(Instr::IJne("throw_error".to_string()));
-  instr_vect
-}
-
-fn instr_to_str(i: &Instr) -> String {
-    match i {
-        Instr::IMov(v1, v2) => format!("mov {}, {}", val_to_str(v1), val_to_str(v2)),
-        Instr::IAdd(v1, v2) => format!("add {}, {}", val_to_str(v1), val_to_str(v2)),
-        Instr::ISub(v1, v2) => format!("sub {}, {}", val_to_str(v1), val_to_str(v2)),
-        Instr::IMul(v1, v2) => format!("imul {}, {}", val_to_str(v1), val_to_str(v2)),
-        Instr::ICmp(v1, v2) => format!("cmp {}, {}", val_to_str(v1), val_to_str(v2)),
-        Instr::ICmove(v1, v2) => format!("cmove {}, {}", val_to_str(v1), val_to_str(v2)),
-        Instr::IJg(label) => format!("jg {}", label),
-        Instr::IJge(label) => format!("jge {}", label),
-        Instr::IJl(label) => format!("jl {}", label),
-        Instr::IJle(label) => format!("jle {}", label),
-        Instr::ICall(fun_name) => format!("call {}", fun_name),
-        Instr::IPush(v1) => format!("push {}", val_to_str(v1)),
-        Instr::IPop(v1) => format!("pop {}", val_to_str(v1)),
-        // Instr::IJz(label) => format!("jz {}", label),
-        // Instr::IJnz(label) => format!("jnz {}", label),
-        Instr::ILabel(label, instrs) => format!("{}:{}", label, decode_instrs_vec_to_string(instrs)),
-        Instr::IJe(label) => format!("je {}", label),
-        Instr::IJc(label) => format!("jc {}", label),
-        Instr::IJo(label) => format!("jo {}", label),
-        // Instr::IJnc(label) => format!("jnc {}", label),
-        Instr::ISar(v1, bits) => format!("sar {}, {}", val_to_str(v1), bits),
-        Instr::IJmp(label) => format!("jmp {}", label),
-        Instr::IJne(label) => format!("jne {}", label),
-        Instr::IXor(v1, v2) => format!("xor {}, {}", val_to_str(v1), val_to_str(v2)),
-        Instr::ITest(v1, v2) => {
-          match v1 {
-            Val::RegOffset(_, _) => format!("test word{}, {}", val_to_str(v1), val_to_str(v2)),
-            _ => format!("test {}, {}", val_to_str(v1), val_to_str(v2))
-          }
-        },
-        // Instr::ILoop(label) => format!("loop {}", label),
-        // Instr::IBreak(v1) => format!("break {}", val_to_str(v1)),
-        Instr::ICmovb(v1, v2) => format!("cmovb {}, {}", val_to_str(v1), val_to_str(v2)),
-        // Instr::IComment(comment) => format!("; {}", comment),
-        // Instr::IRet() => format!("ret"),
-    }
-}
-
-fn reg_str(reg_name: &Reg) -> String {
-  match reg_name {
-      Reg::RAX => "rax", 
-      Reg::RSP => "rsp", 
-      Reg::RBX => "rbx", 
-      Reg::RDI => "rdi", 
-  }.to_string()
-}
-
-fn val_to_str(v: &Val) -> String {
-    match v {
-        Val::Reg(reg_name) => {
-          reg_str(reg_name)
-        },
-        Val::Imm(num) => num.to_string(),
-        Val::RegOffset(reg_name, stack_offset) => {
-            let reg_name = reg_str(reg_name);
-            format!("[{} - {}]", reg_name, stack_offset)
-        },
-    }
-}
-
-fn decode_instrs_vec_to_string(vect_instrs: &Vec<Instr>) -> String {
-  let mut ans = "".to_owned();
-  for inst in vect_instrs.iter() {
-      ans += &("\n".to_owned() + &instr_to_str(&inst));
-      // ans.push_str("\n");
-      // ans.push_str(&instr_to_str(&inst));
-  }
-  ans.to_string()
-}
-
 fn compile(e: &Expr) -> String {
     let si = 2;
     let env = im::HashMap::<String, i32>::new();
@@ -537,12 +542,6 @@ fn compile(e: &Expr) -> String {
     let vect_instrs = compile_to_instrs(&e, si, &env, &break_label.to_owned(), &mut l);
     decode_instrs_vec_to_string(&vect_instrs)
 }
-
-
-
-// ----
-
-
 
 
 // parsing 
