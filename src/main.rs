@@ -15,9 +15,17 @@ const INT_ONE :i64 = 2;
 const I63_MAX : i64 = 4611686018427387903;
 const I63_MIN : i64 = -4611686018427387904;
 
+#[derive(Debug, Clone)]
+struct Program {
+  defs: Vec<Definition>,
+  main: Expr,
+}
 
-lazy_static::lazy_static! {
-  static ref DEFINED_FUNCTION_NAMES: HashMap<String, Vec<String>> = HashMap::new();
+#[derive(Debug, Clone)]
+struct Definition {
+  fun_name: String, 
+  args: Vec<String>, 
+  fun_body: Expr,
 }
 
 #[derive(Debug, Clone)]
@@ -70,7 +78,7 @@ enum Instr {
 
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Op1 {
     Add1,
     Sub1,
@@ -79,7 +87,7 @@ enum Op1 {
     Print,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Op2 {
     Plus,
     Minus,
@@ -91,7 +99,7 @@ enum Op2 {
     LessEqual,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum Expr {
     Number(i64),
     True, 
@@ -106,20 +114,10 @@ enum Expr {
     Block(Vec<Expr>), 
     Loop(Box<Expr>), 
     Break(Box<Expr>),
-    
-    Definition(String, Vec<String>, Box<Expr>), // fun_name, args_name_vec, fun_body
-    Program(Vec<Expr>, Box<Expr>)
+
+    Function(String, Vec<Expr>),
 }
 
-// struct Program {
-//   defs: Vec<Expr::Definition>,
-//   main: Expr
-// }
-
-// enum Definition {
-
-
-// }
 // compiling 
 
 fn new_label(l: &mut i32, s: &str) -> String {
@@ -402,8 +400,8 @@ fn compile_to_instrs(e: & Expr, si: i32, env: & HashMap<String, i32>, break_labe
           }
           instr_vector.extend(compile_to_instrs(break_instrs, si, &env, &break_label, l));
           instr_vector.push(Instr::IJmp(break_label.clone()));
-        }
-        &Expr::Definition(_, _, _) | &Expr::Program(_, _) => todo!()
+        },
+        Expr::Function(_, _) => todo!(),
     }
     instr_vector.to_vec()
 }
@@ -549,7 +547,7 @@ fn compile(e: &Expr) -> String {
 
 // parsing 
 
-fn parse_bind(s: &Sexp) -> Vec<(String, Expr)> {
+fn parse_bind(s: &Sexp,defs: &Vec<Definition>) -> Vec<(String, Expr)> {
     let mut bindings_vec = Vec::new();
     match s {
         Sexp::List(bindings) => {
@@ -560,7 +558,7 @@ fn parse_bind(s: &Sexp) -> Vec<(String, Expr)> {
                             [Sexp::Atom(S(id)), subexp] => {
                               match id.as_ref() {
                                 "true" | "false" | "let" | "block" | "loop" | "break" | "set!" | "input" | "if" => panic!("keyword"),
-                                _ => vec![(id.to_string(), parse_expr(subexp))],
+                                _ => vec![(id.to_string(), parse_expr(subexp, &defs))],
                               }
                             }
                             _ => panic!("Invalid"),  
@@ -578,34 +576,35 @@ fn parse_bind(s: &Sexp) -> Vec<(String, Expr)> {
 
 }
 
-fn parse_def(s: &Sexp) -> Expr {
+fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>,defs: &Vec<Definition>) -> Definition {
   match s {
     Sexp::List(vec) => match &vec[..] {
-      [Sexp::Atom(S(fun_keyword)), Sexp::List(fun_def), fun_body] if fun_keyword == "fun" => match &fun_def[..] {
-        [Sexp::Atom(S(fun_name)), args @ ..] => {
-          if DEFINED_FUNCTION_NAMES.contains_key(fun_name) {
-            panic!("Multiple functions are defined with the same name");
-          }
-          let mut arg_names = HashSet::new();
-          let mut args_vec = Vec::<String>::new();
-          for arg in args.iter() {
-            if let Sexp::Atom(S(arg_name)) = arg {
-              println!("arg in args - {}", arg_name);
-              if arg_names.contains(arg_name) {
-                panic!("A function's parameter list has a duplicate name");
-              }
-              arg_names.insert(arg_name);
-              args_vec.push(arg_name.to_string());
+      [Sexp::Atom(S(fun_keyword)), Sexp::List(fun_def), fun_body_sexp] 
+        if fun_keyword == "fun" => match &fun_def[..] {
+          [Sexp::Atom(S(fun_name)), args @ ..] => {
+            if defined_function_names.contains(fun_name) {
+              panic!("Multiple functions are defined with the same name");
             }
-          }
-          // let args_vec: Vec<String> = args.iter().map(|sexp| match sexp {
-          //   Sexp::Atom(s) => s.to_owned(),
-          //   _ => panic!("Incorrect argument types to function"),
-          // }).collect();
-        
-          DEFINED_FUNCTION_NAMES.insert(fun_name.to_string(), args_vec.clone());
-          return Expr::Definition(fun_name.to_string(), args_vec, Box::new(parse_expr(fun_body)))
-        }, 
+            let mut arg_names = HashSet::new();
+            let mut args_vec = Vec::<String>::new();
+            for arg in args.iter() {
+              if let Sexp::Atom(S(arg_name)) = arg {
+                println!("arg in args - {}", arg_name);
+                if arg_names.contains(arg_name) {
+                  panic!("A function's parameter list has a duplicate name");
+                }
+                arg_names.insert(arg_name);
+                args_vec.push(arg_name.to_string());
+              }
+            }
+          
+            defined_function_names.insert(fun_name.to_string());
+            return Definition {
+              fun_name: fun_name.to_string(),
+              args: args_vec, 
+              fun_body: parse_expr(fun_body_sexp, &defs),
+            };
+          }, 
         _ => panic!("Function definition not valid"),
       },
       _ => panic!("Program should have fun_keyword, fun_defs_list and fun_body"),
@@ -624,15 +623,19 @@ fn is_def(s: &Sexp) -> bool {
   }
 }
 
-fn parse_prog(s: &Sexp) -> Expr {
+fn parse_prog(s: &Sexp) -> Program {
+  let mut defined_function_names : HashSet<String> = HashSet::new();
   match s {
     Sexp::List(vec) => {
-      let mut defs: Vec<Expr> = vec![];
+      let mut defs: Vec<Definition> = vec![];
       for def_or_expr in vec {
         if is_def(def_or_expr) {
-          defs.push(parse_def(def_or_expr));
+          defs.push(parse_def(def_or_expr, &mut defined_function_names, &defs));
         } else {
-          return Expr::Program(defs, Box::new(parse_expr(def_or_expr)))
+          return Program {
+            defs: defs.clone(),
+            main: parse_expr(def_or_expr, &defs),
+          };
         }
       }
       panic!("No main found");
@@ -641,7 +644,7 @@ fn parse_prog(s: &Sexp) -> Expr {
   }
 }
 
-fn parse_expr(s: &Sexp) -> Expr {
+fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
     match s {
         Sexp::Atom(I(n)) => {
           match i64::try_from(*n) {
@@ -666,28 +669,32 @@ fn parse_expr(s: &Sexp) -> Expr {
         },
         Sexp::List(vec) => {
             match &vec[..] {
-                [Sexp::Atom(S(op)), e] if op == "add1" => Expr::UnOp(Op1::Add1, Box::new(parse_expr(e))),
-                [Sexp::Atom(S(op)), e] if op == "sub1" => Expr::UnOp(Op1::Sub1, Box::new(parse_expr(e))),
-                [Sexp::Atom(S(op)), e] if op == "isnum" => Expr::UnOp(Op1::IsNum, Box::new(parse_expr(e))),
-                [Sexp::Atom(S(op)), e] if op == "isbool" => Expr::UnOp(Op1::IsBool, Box::new(parse_expr(e))),
-                [Sexp::Atom(S(op)), e] if op == "print" => Expr::UnOp(Op1::Print, Box::new(parse_expr(e))),
-                [Sexp::Atom(S(op)), e] if op == "loop" => Expr::Loop(Box::new(parse_expr(e))),
-                [Sexp::Atom(S(op)), e] if op == "break" => Expr::Break(Box::new(parse_expr(e))),
-                [Sexp::Atom(S(op)), e1, e2] if op == "let" => Expr::Let(parse_bind(e1), Box::new(parse_expr(e2))),
-                [Sexp::Atom(S(op)), e1, e2] if op == "+" => Expr::BinOp(Op2::Plus, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
-                [Sexp::Atom(S(op)), e1, e2] if op == "-" => Expr::BinOp(Op2::Minus, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
-                [Sexp::Atom(S(op)), e1, e2] if op == "*" => Expr::BinOp(Op2::Times, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
-                [Sexp::Atom(S(op)), e1, e2] if op == "=" => Expr::BinOp(Op2::Equal, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
-                [Sexp::Atom(S(op)), e1, e2] if op == ">" => Expr::BinOp(Op2::Greater, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
-                [Sexp::Atom(S(op)), e1, e2] if op == "<" => Expr::BinOp(Op2::Less, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
-                [Sexp::Atom(S(op)), e1, e2] if op == ">=" => Expr::BinOp(Op2::GreaterEqual, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
-                [Sexp::Atom(S(op)), e1, e2] if op == "<=" => Expr::BinOp(Op2::LessEqual, Box::new(parse_expr(e1)), Box::new(parse_expr(e2))),
+                [Sexp::Atom(S(op)), e] if op == "add1" => Expr::UnOp(Op1::Add1, Box::new(parse_expr(e, &defs))),
+                [Sexp::Atom(S(op)), e] if op == "sub1" => Expr::UnOp(Op1::Sub1, Box::new(parse_expr(e, &defs))),
+                [Sexp::Atom(S(op)), e] if op == "isnum" => Expr::UnOp(Op1::IsNum, Box::new(parse_expr(e, &defs))),
+                [Sexp::Atom(S(op)), e] if op == "isbool" => Expr::UnOp(Op1::IsBool, Box::new(parse_expr(e, &defs))),
+                [Sexp::Atom(S(op)), e] if op == "print" => Expr::UnOp(Op1::Print, Box::new(parse_expr(e, &defs))),
+                [Sexp::Atom(S(op)), e] if op == "loop" => Expr::Loop(Box::new(parse_expr(e, &defs))),
+                [Sexp::Atom(S(op)), e] if op == "break" => Expr::Break(Box::new(parse_expr(e, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == "let" => Expr::Let(parse_bind(e1, &defs), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == "+" => Expr::BinOp(Op2::Plus, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == "-" => Expr::BinOp(Op2::Minus, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == "*" => Expr::BinOp(Op2::Times, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == "=" => Expr::BinOp(Op2::Equal, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == ">" => Expr::BinOp(Op2::Greater, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == "<" => Expr::BinOp(Op2::Less, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == ">=" => Expr::BinOp(Op2::GreaterEqual, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == "<=" => Expr::BinOp(Op2::LessEqual, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
 
-                [Sexp::Atom(S(op)), cond_exp, then_exp, else_exp] if op == "if" => Expr::If(Box::new(parse_expr(cond_exp)), Box::new(parse_expr(then_exp)), Box::new(parse_expr(else_exp))),
+                [Sexp::Atom(S(op)), cond_exp, then_exp, else_exp] 
+                  if op == "if" => Expr::If(Box::new(parse_expr(cond_exp, &defs)), 
+                                            Box::new(parse_expr(then_exp, &defs)), 
+                                            Box::new(parse_expr(else_exp, &defs))),
+
                 [Sexp::Atom(S(op)), Sexp::Atom(S(id)), exp] if op == "set!" => {
                   match id.as_ref() {
                     "true" | "false" | "let" | "block" | "loop" | "break" | "set!" | "input" | "if" => panic!("keyword"),
-                    _ => Expr::Set(id.to_string(), Box::new(parse_expr(exp))),
+                    _ => Expr::Set(id.to_string(), Box::new(parse_expr(exp, &defs))),
                   }
                 }
                 [Sexp::Atom(S(op)), rest @ ..] if op == "block" => {
@@ -696,13 +703,16 @@ fn parse_expr(s: &Sexp) -> Expr {
                   }
                   let mut block_exps = Vec::new();
                   for sub_exp in rest.iter() {
-                    block_exps.push(parse_expr(sub_exp));
+                    block_exps.push(parse_expr(sub_exp, &defs));
                   }
                   Expr::Block(block_exps)
                 }
-
-
-                _ => panic!("Invalid")
+                [Sexp::Atom(S(fun_name)), rest @ ..] 
+                  if defs.iter().any(|def| def.fun_name == fun_name.to_string() && def.args.len() == rest.len()) => {
+                    Expr::Function(fun_name.to_string(), 
+                      rest.iter().map(|arg_val| parse_expr(arg_val, &defs)).collect())
+                }
+                _ => panic!("Invalid {:?}", vec)
             }
         },
         _ => panic!("Invalid")
@@ -736,6 +746,7 @@ fn main() -> std::io::Result<()> {
 
     println!("s_exp - {}", s_exp);
     let prog = parse_prog(&s_exp);
+    println!("parse_prog - {:?}", prog);
     // let expr = parse_expr(&s_exp);
     // let result = format!("expr - {:?}", expr);
     // println!("Parsed expr = {:?}", expr);
