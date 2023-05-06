@@ -15,6 +15,11 @@ const INT_ONE :i64 = 2;
 const I63_MAX : i64 = 4611686018427387903;
 const I63_MIN : i64 = -4611686018427387904;
 
+
+lazy_static::lazy_static! {
+  static ref DEFINED_FUNCTION_NAMES: HashMap<String, Vec<String>> = HashMap::new();
+}
+
 #[derive(Debug, Clone)]
 enum Val {
     Reg(Reg),
@@ -101,9 +106,20 @@ enum Expr {
     Block(Vec<Expr>), 
     Loop(Box<Expr>), 
     Break(Box<Expr>),
+    
+    Definition(String, Vec<String>, Box<Expr>), // fun_name, args_name_vec, fun_body
+    Program(Vec<Expr>, Box<Expr>)
 }
 
+// struct Program {
+//   defs: Vec<Expr::Definition>,
+//   main: Expr
+// }
 
+// enum Definition {
+
+
+// }
 // compiling 
 
 fn new_label(l: &mut i32, s: &str) -> String {
@@ -387,6 +403,7 @@ fn compile_to_instrs(e: & Expr, si: i32, env: & HashMap<String, i32>, break_labe
           instr_vector.extend(compile_to_instrs(break_instrs, si, &env, &break_label, l));
           instr_vector.push(Instr::IJmp(break_label.clone()));
         }
+        &Expr::Definition(_, _, _) | &Expr::Program(_, _) => todo!()
     }
     instr_vector.to_vec()
 }
@@ -561,6 +578,69 @@ fn parse_bind(s: &Sexp) -> Vec<(String, Expr)> {
 
 }
 
+fn parse_def(s: &Sexp) -> Expr {
+  match s {
+    Sexp::List(vec) => match &vec[..] {
+      [Sexp::Atom(S(fun_keyword)), Sexp::List(fun_def), fun_body] if fun_keyword == "fun" => match &fun_def[..] {
+        [Sexp::Atom(S(fun_name)), args @ ..] => {
+          if DEFINED_FUNCTION_NAMES.contains_key(fun_name) {
+            panic!("Multiple functions are defined with the same name");
+          }
+          let mut arg_names = HashSet::new();
+          let mut args_vec = Vec::<String>::new();
+          for arg in args.iter() {
+            if let Sexp::Atom(S(arg_name)) = arg {
+              println!("arg in args - {}", arg_name);
+              if arg_names.contains(arg_name) {
+                panic!("A function's parameter list has a duplicate name");
+              }
+              arg_names.insert(arg_name);
+              args_vec.push(arg_name.to_string());
+            }
+          }
+          // let args_vec: Vec<String> = args.iter().map(|sexp| match sexp {
+          //   Sexp::Atom(s) => s.to_owned(),
+          //   _ => panic!("Incorrect argument types to function"),
+          // }).collect();
+        
+          DEFINED_FUNCTION_NAMES.insert(fun_name.to_string(), args_vec.clone());
+          return Expr::Definition(fun_name.to_string(), args_vec, Box::new(parse_expr(fun_body)))
+        }, 
+        _ => panic!("Function definition not valid"),
+      },
+      _ => panic!("Program should have fun_keyword, fun_defs_list and fun_body"),
+    }, 
+    _ => panic!("Program needs to be a list"),
+  }
+}
+
+fn is_def(s: &Sexp) -> bool {
+  match s {
+    Sexp::List(vec) => match &vec[..] {
+      [Sexp::Atom(S(fun_keyword)), Sexp::List(_), _] if fun_keyword == "fun" => true, 
+      _ => false,
+    }, 
+    _ => false
+  }
+}
+
+fn parse_prog(s: &Sexp) -> Expr {
+  match s {
+    Sexp::List(vec) => {
+      let mut defs: Vec<Expr> = vec![];
+      for def_or_expr in vec {
+        if is_def(def_or_expr) {
+          defs.push(parse_def(def_or_expr));
+        } else {
+          return Expr::Program(defs, Box::new(parse_expr(def_or_expr)))
+        }
+      }
+      panic!("No main found");
+    }
+    _ => panic!("Program needs to be a list"),
+  }
+}
+
 fn parse_expr(s: &Sexp) -> Expr {
     match s {
         Sexp::Atom(I(n)) => {
@@ -647,17 +727,21 @@ fn main() -> std::io::Result<()> {
     let mut contents = String::new();
     in_file.read_to_string(&mut contents)?;
 
-    let s_exp = match parse(&contents) {
+    let prog = "(".to_owned() + &contents + ")";
+
+    let s_exp = match parse(&prog) {
         Ok(s_exp) => s_exp,
         Err(_) => panic!("Invalid")
     };
 
     println!("s_exp - {}", s_exp);
-    let expr = parse_expr(&s_exp);
+    let prog = parse_prog(&s_exp);
+    // let expr = parse_expr(&s_exp);
     // let result = format!("expr - {:?}", expr);
-    println!("Parsed expr = {:?}", expr);
+    // println!("Parsed expr = {:?}", expr);
 
-    let result = compile(&expr);
+    // let result = compile(&expr);
+    let result = "mov rax, 1";
 
     let asm_program = format!(
         "
