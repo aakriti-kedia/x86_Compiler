@@ -15,6 +15,11 @@ const INT_ONE :i64 = 2;
 const I63_MAX : i64 = 4611686018427387903;
 const I63_MIN : i64 = -4611686018427387904;
 
+static ALL_RESERVED_WORDS: &'static [&str] = &["true", "false", "add1", "sub1", "isnum", 
+                                      "isbool", "input" ,"let", "block", "set", "if", "break", 
+                                      "loop", "set!", "+", "-", "*", "=", ">", ">=", "<", "<="];
+
+
 #[derive(Debug, Clone)]
 struct Program {
   defs: Vec<Definition>,
@@ -25,7 +30,7 @@ struct Program {
 struct Definition {
   fun_name: String, 
   args: Vec<String>, 
-  fun_body: Expr,
+  fun_body: Option<Expr>,
 }
 
 #[derive(Debug, Clone)]
@@ -569,7 +574,7 @@ fn compile_definition(d: &Definition, labels: &mut i32) -> Vec<Instr> {
     env.insert(arg.clone(), -(i as i32 + 1) * 8);
   }
 
-  let body_instrs = compile_expr(&d.fun_body, si, &env, &break_label.to_owned(), labels);
+  let body_instrs = compile_expr(&d.fun_body.clone().unwrap(), si, &env, &break_label.to_owned(), labels);
   instr_vector.push(Instr::ILabel(d.fun_name.to_owned(), body_instrs));
 
   instr_vector.push(Instr::IRet());
@@ -605,9 +610,10 @@ fn parse_bind(s: &Sexp,defs: &Vec<Definition>) -> Vec<(String, Expr)> {
                     Sexp::List(binding) => {
                         match &binding[..] {
                             [Sexp::Atom(S(id)), subexp] => {
-                              match id.as_ref() {
-                                "true" | "false" | "let" | "block" | "loop" | "break" | "set!" | "input" | "if" => panic!("keyword"),
-                                _ => vec![(id.to_string(), parse_expr(subexp, &defs))],
+                              if ALL_RESERVED_WORDS.contains(&&id[..]) {
+                                panic!("let binding contains a keyword");
+                              } else {
+                                vec![(id.to_string(), parse_expr(subexp, &defs))]
                               }
                             }
                             _ => panic!("Invalid"),  
@@ -625,20 +631,31 @@ fn parse_bind(s: &Sexp,defs: &Vec<Definition>) -> Vec<(String, Expr)> {
 
 }
 
-fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>,defs: &Vec<Definition>) -> Definition {
+fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>) -> (Definition, Sexp) {
   match s {
     Sexp::List(vec) => match &vec[..] {
       [Sexp::Atom(S(fun_keyword)), Sexp::List(fun_def), fun_body_sexp] 
         if fun_keyword == "fun" => match &fun_def[..] {
           [Sexp::Atom(S(fun_name)), args @ ..] => {
+
+            if ALL_RESERVED_WORDS.contains(&&fun_name[..]) {
+              panic!("fun_name contains a keyword");
+            }
+
             if defined_function_names.contains(fun_name) {
               panic!("Multiple functions are defined with the same name");
             }
+
             let mut arg_names = HashSet::new();
             let mut args_vec = Vec::<String>::new();
             for arg in args.iter() {
               if let Sexp::Atom(S(arg_name)) = arg {
                 println!("arg in args - {}", arg_name);
+
+                if ALL_RESERVED_WORDS.contains(&&arg_name[..]) {
+                  panic!("arg_name contains a keyword");
+                }
+
                 if arg_names.contains(arg_name) {
                   panic!("A function's parameter list has a duplicate name");
                 }
@@ -648,11 +665,17 @@ fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>,defs: &Vec<D
             }
           
             defined_function_names.insert(fun_name.to_string());
-            return Definition {
+            // let mut defs_local = defs.clone();
+            // let mut current_definition = Definition {
+            let current_definition = Definition {
               fun_name: fun_name.to_string(),
               args: args_vec, 
-              fun_body: parse_expr(fun_body_sexp, &defs),
+              fun_body: None,
+              // fun_body: FunBody::FunBodySexp(fun_body_sexp.clone()),
             };
+            // defs_local.push(current_definition.clone());
+            // current_definition.fun_body = parse_expr(fun_body_sexp, &defs_local);
+            return (current_definition, fun_body_sexp.clone());
           }, 
         _ => panic!("Function definition not valid"),
       },
@@ -672,17 +695,37 @@ fn is_def(s: &Sexp) -> bool {
   }
 }
 
+fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: HashMap<String, Sexp>) -> Vec<Definition> {
+  let mut defs_local : Vec<Definition> = vec![];
+  for def in defs {
+    if fun_body_sexp_hashmap.contains_key(&def.fun_name) {
+      let fun_body_sexp = fun_body_sexp_hashmap.get(&def.fun_name).unwrap();
+      defs_local.push(Definition {
+        fun_name: def.fun_name.to_owned(),
+        args: def.args.to_owned(),
+        fun_body: Some(parse_expr(fun_body_sexp, &defs)),
+      })
+    } else {
+      panic!("Function not defined");
+    }
+  }
+  return defs_local;
+}
+
 fn parse_prog(s: &Sexp) -> Program {
   let mut defined_function_names : HashSet<String> = HashSet::new();
   match s {
     Sexp::List(vec) => {
       let mut defs: Vec<Definition> = vec![];
+      let mut fun_body_sexp_hashmap: HashMap<String, Sexp> = HashMap::new();
       for def_or_expr in vec {
         if is_def(def_or_expr) {
-          defs.push(parse_def(def_or_expr, &mut defined_function_names, &defs));
+          let (current_definition, current_body_sexp) = parse_def(def_or_expr, &mut defined_function_names);
+          defs.push(current_definition.clone());
+          fun_body_sexp_hashmap.insert(current_definition.fun_name.to_owned(), current_body_sexp);
         } else {
           return Program {
-            defs: defs.clone(),
+            defs: parse_def_body(&defs, fun_body_sexp_hashmap),
             main: parse_expr(def_or_expr, &defs),
           };
         }
@@ -741,9 +784,10 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                                             Box::new(parse_expr(else_exp, &defs))),
 
                 [Sexp::Atom(S(op)), Sexp::Atom(S(id)), exp] if op == "set!" => {
-                  match id.as_ref() {
-                    "true" | "false" | "let" | "block" | "loop" | "break" | "set!" | "input" | "if" => panic!("keyword"),
-                    _ => Expr::Set(id.to_string(), Box::new(parse_expr(exp, &defs))),
+                  if ALL_RESERVED_WORDS.contains(&&id[..]) {
+                    panic!("set binding contains a keyword");
+                  } else {
+                    Expr::Set(id.to_string(), Box::new(parse_expr(exp, &defs)))
                   }
                 }
                 [Sexp::Atom(S(op)), rest @ ..] if op == "block" => {
