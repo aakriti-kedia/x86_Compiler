@@ -683,9 +683,9 @@ fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>) -> (Definit
             // current_definition.fun_body = parse_expr(fun_body_sexp, &defs_local);
             return (current_definition, fun_body_sexp.clone());
           }, 
-        _ => panic!("Function definition not valid"),
+        _ => panic!("Function definition not valid: Invalid"),
       },
-      _ => panic!("Program should have fun_keyword, fun_defs_list and fun_body"),
+      _ => panic!("Program should have fun_keyword, fun_defs_list and fun_body: Invalid"),
     }, 
     _ => panic!("Program needs to be a list"),
   }
