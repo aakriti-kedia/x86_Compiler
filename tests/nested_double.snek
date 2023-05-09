@@ -1,0 +1,5 @@
+(fun (double x) (nesteddouble x))
+
+(fun (nesteddouble x) (+ x x))
+
+(double input)

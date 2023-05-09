@@ -9,6 +9,18 @@ success_tests! {
         expected: "3628800",
     },
     {
+        name: double,
+        file: "double.snek",
+        input: "10",
+        expected: "20",
+    },
+    {
+        name: nested_double,
+        file: "nested_double.snek",
+        input: "10",
+        expected: "20",
+    },
+    {
         name: even_odd_1,
         file: "even_odd.snek",
         input: "10",

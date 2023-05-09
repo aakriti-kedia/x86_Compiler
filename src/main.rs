@@ -37,8 +37,8 @@ struct Definition {
 enum Val {
     Reg(Reg),
     Imm(i64),
-    RegOffset(Reg, i32),
     RegPlusOffset(Reg, i32),
+    RegNegOffset(Reg, i32),
 }
 
 #[derive(Debug, Clone)]
@@ -212,7 +212,7 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IXor(v1, v2) => format!("xor {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::ITest(v1, v2) => {
         match v1 {
-          Val::RegOffset(_, _) => format!("test word{}, {}", val_to_str(v1), val_to_str(v2)),
+          Val::RegPlusOffset(_, _) => format!("test word{}, {}", val_to_str(v1), val_to_str(v2)),
           _ => format!("test {}, {}", val_to_str(v1), val_to_str(v2))
         }
       },
@@ -239,7 +239,7 @@ fn val_to_str(v: &Val) -> String {
         reg_str(reg_name)
       },
       Val::Imm(num) => num.to_string(),
-      Val::RegOffset(reg_name, stack_offset) => {
+      Val::RegNegOffset(reg_name, stack_offset) => {
           let reg_name = reg_str(reg_name);
           format!("[{} - {}]", reg_name, stack_offset)
       },
@@ -284,7 +284,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
         Expr::Id(s) => {
             println!("env {:?}, s = {}", *env, s);
             if env.contains_key(s) {
-                instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegOffset(Reg::RSP, *env.get(s).unwrap())))
+                instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegPlusOffset(Reg::RSP, *env.get(s).unwrap())))
             } else {
                 panic!("Unbound variable identifier {}", s);
             }
@@ -306,7 +306,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 nenv = nenv.update(var_id.to_string(), si_local * 8);
                 println!("nenv {:?}", nenv);
                 instr_vector.extend(binding_expr_instrs);
-                let curr_instr = Instr::IMov(Val::RegOffset(Reg::RSP, si_local * 8), Val::Reg(Reg::RAX));
+                let curr_instr = Instr::IMov(Val::RegPlusOffset(Reg::RSP, si_local * 8), Val::Reg(Reg::RAX));
                 instr_vector.push(curr_instr);
                 si_local += 1;
             }
@@ -367,13 +367,13 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
             let e2_instrs = compile_expr(subexp2, si+1, &env, &break_label, l);
             let stack_offset = si * 8;
             instr_vector.extend(e1_instrs);
-            instr_vector.push(Instr::IMov(Val::RegOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX)));
+            instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX)));
             instr_vector.extend(e2_instrs);
 
             match op2 {
                 Op2::Plus => {
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
                   // instr_vector.push(Instr::IRet());
@@ -381,7 +381,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   instr_vector.extend(check_overflow(v1.clone()));
                 }
                 Op2::Minus => {
-                  let v1 = Val::RegOffset(Reg::RSP, stack_offset);
+                  let v1 = Val::RegPlusOffset(Reg::RSP, stack_offset);
                   let v2 = Val::Reg(Reg::RAX);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
@@ -391,7 +391,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 }
                 Op2::Times => {
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
                   instr_vector.push(Instr::ISar(v1.clone(), 1));
@@ -400,8 +400,8 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   instr_vector.extend(check_overflow(v1.clone()));
                 }
                 Op2::Equal => {
-                    instr_vector.extend(check_type_match(Val::Reg(Reg::RAX), Val::RegOffset(Reg::RSP, stack_offset)));
-                    instr_vector.push(Instr::ICmp(Val::Reg(Reg::RAX), Val::RegOffset(Reg::RSP, stack_offset)));
+                    instr_vector.extend(check_type_match(Val::Reg(Reg::RAX), Val::RegPlusOffset(Reg::RSP, stack_offset)));
+                    instr_vector.push(Instr::ICmp(Val::Reg(Reg::RAX), Val::RegPlusOffset(Reg::RSP, stack_offset)));
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(TRUE_INT)));
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)));
                     instr_vector.push(Instr::ICmove(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
@@ -411,7 +411,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                     let greater_end_label = new_label(l, "greater_end");
 
                     let v1 = Val::Reg(Reg::RAX);
-                    let v2 = Val::RegOffset(Reg::RSP, stack_offset);
+                    let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
                     instr_vector.extend(is_num(v1.clone()));
                     instr_vector.extend(is_num(v2.clone()));
 
@@ -432,7 +432,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   let less_end_label = new_label(l, "less_end");
 
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
 
@@ -453,7 +453,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   let greater_eq_end_label = new_label(l, "greater_eq_end");
 
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
 
@@ -473,7 +473,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   let less_eq_end_label = new_label(l, "less_eq_end");
 
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
 
@@ -510,7 +510,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           instr_vector.extend(subexp_instrs);
           if env.contains_key(var_name) {
             let var_st_pos = *env.get(var_name).unwrap();
-            instr_vector.push(Instr::IMov(Val::RegOffset(Reg::RSP, var_st_pos), Val::Reg(Reg::RAX)));
+            instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, var_st_pos), Val::Reg(Reg::RAX)));
           } else {
             panic!("Unbound variable identifier {}", var_name);
           }
@@ -540,21 +540,26 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           instr_vector.push(Instr::IJmp(break_label.clone()));
         },
         Expr::Function(fun_name, args_vec) => {
+          
           let offset = (si + (args_vec.len() as i32) + 1) * 8; // 1 for rdi
-          instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
-          let mut current_offset = 0;
+          let mut curr_word_offset = offset;
+
+          
 
           for arg in args_vec {
             let arg_instrs = compile_expr(arg, si, env, break_label, l);
             instr_vector.extend(arg_instrs);
-            instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, current_offset), Val::Reg(Reg::RAX)));
-            current_offset += 8;
+            instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RAX)));
+            curr_word_offset -= 8;
           }
-          instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, current_offset), Val::Reg(Reg::RDI)));
+          
+          instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+
+          instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RDI)));
 
           instr_vector.push(Instr::ICall(fun_name.to_string()));
           
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::RegPlusOffset(Reg::RSP, current_offset)));
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::RegPlusOffset(Reg::RSP, curr_word_offset)));
 
           instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
           
@@ -571,7 +576,7 @@ fn compile_definition(d: &Definition, labels: &mut i32) -> Vec<Instr> {
   let break_label = "";
 
   for (i, arg) in d.args.iter().enumerate() {
-    env.insert(arg.clone(), -(i as i32 + 1) * 8);
+    env.insert(arg.clone(), (i as i32 + 1) * 8);
   }
 
   let body_instrs = compile_expr(&d.fun_body.clone().unwrap(), si, &env, &break_label.to_owned(), labels);
@@ -593,6 +598,7 @@ fn compile_prog(prog: &Program) -> (String, String) {
   for def in &prog.defs[..] {
     defs_instr_vector.extend(compile_definition(&def, &mut labels));
   }
+
   let main_vect_instrs = compile_expr(&prog.main, si, &env, &break_label.to_owned(), &mut labels);
 
   (decode_instrs_vec_to_string(&defs_instr_vector), decode_instrs_vec_to_string(&main_vect_instrs))
