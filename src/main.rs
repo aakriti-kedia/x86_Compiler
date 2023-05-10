@@ -247,7 +247,7 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IXor(v1, v2) => format!("xor {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::ITest(v1, v2) => {
         match v1 {
-          Val::RegNegOffset(_, _) => format!("test word{}, {}", val_to_str(v1), val_to_str(v2)),
+          Val::RegNegOffset(_, _) | Val::RegPlusOffset(_, _) => format!("test word{}, {}", val_to_str(v1), val_to_str(v2)),
           _ => format!("test {}, {}", val_to_str(v1), val_to_str(v2))
         }
       },
