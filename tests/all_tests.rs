@@ -9,6 +9,12 @@ success_tests! {
         expected: "3628800",
     },
     {
+        name: fact_rec,
+        file: "fact_rec.snek",
+        input: "10",
+        expected: "3628800",
+    },
+    {
         name: double,
         file: "double.snek",
         input: "10",
@@ -23,6 +29,16 @@ success_tests! {
         name: nested_five_arg_3,
         file: "nested_five_arg.snek",
         expected: "30",
+    },
+    {
+        name: even_nested_fun,
+        file: "even_nested_fun.snek",
+        expected: "11",
+    },
+    {
+        name: odd_nested_fun,
+        file: "odd_nested_fun.snek",
+        expected: "10",
     },
     {
         name: fun_no_args,

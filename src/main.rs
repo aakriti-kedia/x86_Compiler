@@ -80,7 +80,7 @@ enum Instr {
     // IJnc(String),
     IJo(String),
     ICmovb(Val, Val),
-    // IComment(String),
+    IComment(String),
 
 }
 
@@ -140,6 +140,7 @@ fn check_overflow(_v: Val) -> Vec<Instr> {
 
 fn check_if_num(v: Val) -> Vec<Instr> {
   let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IComment("check if num".to_string()));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
   instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // should have 0
   instr_vect
@@ -147,6 +148,7 @@ fn check_if_num(v: Val) -> Vec<Instr> {
 
 fn check_input_num(v: Val) -> Vec<Instr> {
   let mut instr_vect = check_if_num(v);
+  instr_vect.push(Instr::IComment("check if input num".to_string()));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(3)));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(1)));
   instr_vect.push(Instr::ICmovb(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
@@ -161,6 +163,7 @@ fn is_num(v: Val) -> Vec<Instr> {
 
 fn check_input_bool(v: Val) -> Vec<Instr> {
   let mut instr_vect = check_if_bool(v);
+  instr_vect.push(Instr::IComment("check if input bool".to_string()));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(1)));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(3)));
   instr_vect.push(Instr::ICmovb(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
@@ -169,6 +172,7 @@ fn check_input_bool(v: Val) -> Vec<Instr> {
 
 fn check_if_bool(v: Val) -> Vec<Instr> {
   let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IComment("check if bool".to_string()));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
   instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // should have 1
   instr_vect
@@ -176,6 +180,7 @@ fn check_if_bool(v: Val) -> Vec<Instr> {
 
 fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
   let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IComment("check if type mismatch".to_string()));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1));
   instr_vect.push(Instr::IXor(Val::Reg(Reg::RBX), v2));
   instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::Imm(FALSE_INT)));
@@ -219,7 +224,7 @@ fn instr_to_str(i: &Instr) -> String {
       // Instr::ILoop(label) => format!("loop {}", label),
       // Instr::IBreak(v1) => format!("break {}", val_to_str(v1)),
       Instr::ICmovb(v1, v2) => format!("cmovb {}, {}", val_to_str(v1), val_to_str(v2)),
-      // Instr::IComment(comment) => format!("; {}", comment),
+      Instr::IComment(comment) => format!("\t\t; {}", comment),
       Instr::IRet() => format!("ret"),
   }
 }
@@ -342,7 +347,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 },
                 Op1::Print => {
                   // sub offset for RSP
-                  let index = if si % 2 == 1 { si + 1 } else { si };
+                  let index = if si % 2 == 1 { si + 3 } else { si + 2 };
                   let offset = index * 8;
 
                   instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
@@ -544,7 +549,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
         Expr::Function(fun_name, args_vec) => {
           
           let offset = si + (args_vec.len() as i32) + 1; // 1 for rdi
-          let offset = if offset % 2 == 1 {offset + 1} else {offset};
+          let offset = if offset % 2 == 1 {offset} else {offset + 1}; // coz of call
           let offset = offset * 8;
           let mut curr_word_offset = offset;
 
@@ -649,25 +654,25 @@ fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>) -> (Definit
           [Sexp::Atom(S(fun_name)), args @ ..] => {
 
             if ALL_RESERVED_WORDS.contains(&&fun_name[..]) {
-              panic!("fun_name contains a keyword");
+              panic!("fun_name contains a keyword: Invalid");
             }
 
             if defined_function_names.contains(fun_name) {
-              panic!("Multiple functions are defined with the same name");
+              panic!("Multiple functions are defined with the same name: Invalid");
             }
 
             let mut arg_names = HashSet::new();
             let mut args_vec = Vec::<String>::new();
             for arg in args.iter() {
               if let Sexp::Atom(S(arg_name)) = arg {
-                println!("arg in args - {}", arg_name);
+                // println!("arg in args - {}", arg_name);
 
                 if ALL_RESERVED_WORDS.contains(&&arg_name[..]) {
-                  panic!("arg_name contains a keyword");
+                  panic!("arg_name contains a keyword: Invalid");
                 }
 
                 if arg_names.contains(arg_name) {
-                  panic!("A function's parameter list has a duplicate name");
+                  panic!("A function's parameter list has a duplicate name: Invalid");
                 }
                 arg_names.insert(arg_name);
                 args_vec.push(arg_name.to_string());
@@ -691,7 +696,7 @@ fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>) -> (Definit
       },
       _ => panic!("Program should have fun_keyword, fun_defs_list and fun_body: Invalid"),
     }, 
-    _ => panic!("Program needs to be a list"),
+    _ => panic!("Program needs to be a list: Invalid"),
   }
 }
 
@@ -716,7 +721,7 @@ fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: HashMap<String
         fun_body: Some(parse_expr(fun_body_sexp, &defs)),
       })
     } else {
-      panic!("Function not defined");
+      panic!("Function not defined: Invalid");
     }
   }
   return defs_local;
@@ -740,9 +745,9 @@ fn parse_prog(s: &Sexp) -> Program {
           };
         }
       }
-      panic!("No main found");
+      panic!("No main found: Invalid");
     }
-    _ => panic!("Program needs to be a list"),
+    _ => panic!("Program needs to be a list: Invalid"),
   }
 }
 
