@@ -67,8 +67,8 @@ enum Instr {
     IJe(String),
     IJmp(String),
     IJne(String),
-    IPush(Val),
-    IPop(Val),
+    // IPush(Val),
+    // IPop(Val),
     // IJz(String),
     // IJnz(String),
     // ILoop(String), 
@@ -202,8 +202,8 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IJl(label) => format!("jl {}", label),
       Instr::IJle(label) => format!("jle {}", label),
       Instr::ICall(fun_name) => format!("call {}", fun_name),
-      Instr::IPush(v1) => format!("push {}", val_to_str(v1)),
-      Instr::IPop(v1) => format!("pop {}", val_to_str(v1)),
+      // Instr::IPush(v1) => format!("push {}", val_to_str(v1)),
+      // Instr::IPop(v1) => format!("pop {}", val_to_str(v1)),
       // Instr::IJz(label) => format!("jz {}", label),
       // Instr::IJnz(label) => format!("jnz {}", label),
       Instr::ILabel(label, instrs) => format!("{}:{}", label, decode_instrs_vec_to_string(instrs)),
@@ -273,6 +273,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
     let mut instr_vector = Vec::new();
     match e {
         Expr::Number(n) => {
+            instr_vector.push(Instr::IComment("number".to_string()));
             instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(*n)));
             instr_vector.extend(check_overflow(Val::Reg(Reg::RAX)));
         }, 
@@ -347,13 +348,15 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 },
                 Op1::Print => {
                   // sub offset for RSP
-                  let index = if si % 2 == 1 { si + 3 } else { si + 2 };
+                  let index = if si % 2 == 1 { si + 1 } else { si };
                   let offset = index * 8;
+
+                  instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, offset), Val::Reg(Reg::RDI)));
 
                   instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
         
                   // store rdi on stack 
-                  instr_vector.push(Instr::IPush(Val::Reg(Reg::RDI)));
+                  // instr_vector.push(Instr::IPush(Val::Reg(Reg::RDI)));
         
                   // put rax in rdi
                   instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::Reg(Reg::RAX)));
@@ -362,10 +365,12 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   instr_vector.push(Instr::ICall("snek_print".to_owned()));
         
                   // restore RDI 
-                  instr_vector.push(Instr::IPop(Val::Reg(Reg::RDI)));
+                  // instr_vector.push(Instr::IPop(Val::Reg(Reg::RDI)));
         
                   // add back offset
                   instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::RegPlusOffset(Reg::RSP, offset)));
                 }
             };
         }, 
@@ -416,6 +421,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 Op2::Greater => {
                     let greater_label = new_label(l, "greater");
                     let greater_end_label = new_label(l, "greater_end");
+                    instr_vector.push(Instr::IComment("greater ".to_string()));
 
                     let v1 = Val::Reg(Reg::RAX);
                     let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
@@ -504,11 +510,14 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           let cond_instrs = compile_expr(cond_exp, si, &env, &break_label, l);
           let then_instrs = compile_expr(then_exp, si, &env, &break_label, l);
           let else_instrs = compile_expr(else_exp, si, &env, &break_label, l);
+          instr_vector.push(Instr::IComment("If - cond instrs".to_string()));
           instr_vector.extend(cond_instrs);
           instr_vector.push(Instr::ICmp(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)));
           instr_vector.push(Instr::IJe(else_label.clone()));
+          instr_vector.push(Instr::IComment("If - then instrs".to_string()));
           instr_vector.extend(then_instrs);
           instr_vector.push(Instr::IJmp(end_label.clone()));
+          instr_vector.push(Instr::IComment("If - else instrs".to_string()));
           instr_vector.push(Instr::ILabel(else_label, else_instrs));
           instr_vector.push(Instr::ILabel(end_label, Vec::new()));
         }
@@ -549,7 +558,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
         Expr::Function(fun_name, args_vec) => {
           
           let offset = si + (args_vec.len() as i32) + 1; // 1 for rdi
-          let offset = if offset % 2 == 1 {offset + 2} else {offset + 3}; // coz of call
+          let offset = if offset % 2 == 1 {offset} else {offset + 1}; // coz of call
           let offset = offset * 8;
           let mut curr_word_offset = offset;
 
@@ -562,7 +571,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
             curr_word_offset -= 8;
           }
           
-          instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RDI)));
+          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RDI)));
           
           instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
 
@@ -820,10 +829,10 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                     Expr::Function(fun_name.to_string(), 
                       rest.iter().map(|arg_val| parse_expr(arg_val, &defs)).collect())
                 }
-                _ => panic!("Invalid {:?}", vec)
+                _ => panic!("Invalid: Did not match any defined list operations {:?}", vec)
             }
         },
-        _ => panic!("Invalid")
+        _ => panic!("Invalid: Did not match any sexp type")
 
     }
 }
