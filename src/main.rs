@@ -376,34 +376,22 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   instr_vector.extend(check_input_bool(Val::Reg(Reg::RAX)));
                 },
                 Op1::Print => {
-
-                  //todo: match sir
-
-                  let index = if si % 2 == 0 { si + 1 } else { si }; //todo try +2
+                  let index = if si % 2 == 1 { si + 2 } else { si + 1 };
                   let offset = index * 8;
 
-                  let rdi_offset = si * 8;
-
-                  instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, rdi_offset), Val::Reg(Reg::RDI)));
+                  let rdi_offset = 0;
 
                   instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+
+                  instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, rdi_offset), Val::Reg(Reg::RDI)));
         
-                  // store rdi on stack 
-                  // instr_vector.push(Instr::IPush(Val::Reg(Reg::RDI)));
-        
-                  // put rax in rdi
                   instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::Reg(Reg::RAX)));
         
-                  // call snek_print fun
                   instr_vector.push(Instr::ICall("snek_print".to_owned()));
         
-                  // restore RDI 
-                  // instr_vector.push(Instr::IPop(Val::Reg(Reg::RDI)));
-        
-                  // add back offset
-                  instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::RegPlusOffset(Reg::RSP, rdi_offset)));
 
-                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::RegNegOffset(Reg::RSP, rdi_offset)));
+                  instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));                  
                 }
             };
         }, 
@@ -589,12 +577,12 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
         Expr::Function(fun_name, args_vec) => {
           
           let offset = si + (args_vec.len() as i32) + 1; // 1 for rdi
-          let offset = if offset % 2 == 1 {offset} else {offset + 1}; // coz of call
+          let offset = if offset % 2 == 1 {offset + 2} else {offset + 1}; // coz of call
           let offset = offset * 8;
           let mut curr_word_offset = offset;
 
           for arg in args_vec {
-            let arg_instrs = compile_expr(arg, offset, env, break_label, l);
+            let arg_instrs = compile_expr(arg, si, env, break_label, l); //todo
             instr_vector.extend(arg_instrs);
             instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RAX)));
             curr_word_offset -= 8;
