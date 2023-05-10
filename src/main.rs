@@ -376,7 +376,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   instr_vector.extend(check_input_bool(Val::Reg(Reg::RAX)));
                 },
                 Op1::Print => {
-                  let index = if si % 2 == 1 { si + 2 } else { si + 1 };
+                  let index = if si % 2 == 1 { si + 2 } else { si + 3 };
                   let offset = index * 8;
 
                   let rdi_offset = 0;
