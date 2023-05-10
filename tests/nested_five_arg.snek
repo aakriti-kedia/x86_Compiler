@@ -1,0 +1,8 @@
+(fun (nestedGetArg a1 a2 a3 a4 a5)
+    a3
+)
+
+(fun (getArg a1 a2 a3 a4 a5)
+    (nestedGetArg a1 a2 a3 a4 a5)
+)
+(getArg 10 20 30 40 50)

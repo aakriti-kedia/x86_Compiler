@@ -15,6 +15,21 @@ success_tests! {
         expected: "20",
     },
     {
+        name: five_arg,
+        file: "five_arg.snek",
+        expected: "10",
+    },
+    {
+        name: nested_five_arg_3,
+        file: "nested_five_arg.snek",
+        expected: "30",
+    },
+    {
+        name: fun_no_args,
+        file: "fun_no_args.snek",
+        expected: "5",
+    },
+    {
         name: nested_double,
         file: "nested_double.snek",
         input: "10",

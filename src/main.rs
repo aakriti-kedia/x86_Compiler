@@ -342,7 +342,9 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 },
                 Op1::Print => {
                   // sub offset for RSP
-                  let offset = si * 8;
+                  let index = if si % 2 == 1 { si + 1 } else { si };
+                  let offset = index * 8;
+
                   instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
         
                   // store rdi on stack 
@@ -541,7 +543,9 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
         },
         Expr::Function(fun_name, args_vec) => {
           
-          let offset = (si + (args_vec.len() as i32) + 1) * 8; // 1 for rdi
+          let offset = si + (args_vec.len() as i32) + 1; // 1 for rdi
+          let offset = if offset % 2 == 1 {offset + 1} else {offset};
+          let offset = offset * 8;
           let mut curr_word_offset = offset;
 
           
@@ -553,9 +557,9 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
             curr_word_offset -= 8;
           }
           
-          instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
-
           instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RDI)));
+          
+          instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
 
           instr_vector.push(Instr::ICall(fun_name.to_string()));
           

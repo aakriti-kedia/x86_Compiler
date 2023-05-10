@@ -1,0 +1,9 @@
+(fun (show2) 
+    5
+)
+
+(fun (show) 
+    (show2)
+)
+
+(show)
