@@ -549,7 +549,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
         Expr::Function(fun_name, args_vec) => {
           
           let offset = si + (args_vec.len() as i32) + 1; // 1 for rdi
-          let offset = if offset % 2 == 1 {offset} else {offset + 1}; // coz of call
+          let offset = if offset % 2 == 1 {offset + 2} else {offset + 3}; // coz of call
           let offset = offset * 8;
           let mut curr_word_offset = offset;
 
