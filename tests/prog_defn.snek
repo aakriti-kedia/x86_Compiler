@@ -1,0 +1,5 @@
+(fun (double x) (+ x x))
+
+(double 5)
+
+(fun (double x) (+ x x))

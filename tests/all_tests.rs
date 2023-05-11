@@ -865,6 +865,21 @@ runtime_error_tests! {
 
 static_error_tests! {
     {
+        name: incorrect_arg,
+        file: "incorrect_arg.snek",
+        expected: "Invalid",
+    },
+    {
+        name: fun_def_input,
+        file: "fun_def_input.snek",
+        expected: "Invalid",
+    },
+    {
+        name: prog_defn,
+        file: "prog_defn.snek",
+        expected: "Invalid",
+    },
+    {
         name: duplicate_params,
         file: "duplicate_params.snek",
         expected: "",
