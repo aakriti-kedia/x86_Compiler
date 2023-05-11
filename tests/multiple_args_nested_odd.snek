@@ -1,0 +1,7 @@
+(fun (geta1 a1 a2 a3)
+    a3
+)
+(fun (getArg a1 a2 a3)
+    (geta1 a1 a2 a3)
+)
+(getArg 1 2 3)

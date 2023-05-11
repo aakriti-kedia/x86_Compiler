@@ -1,0 +1,7 @@
+(fun (geta1 a1 a2)
+    a2
+)
+(fun (getArg a1 a2)
+    (geta1 a1 a2)
+)
+(getArg 1 2)

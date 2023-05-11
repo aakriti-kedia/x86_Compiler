@@ -9,6 +9,26 @@ success_tests! {
         expected: "3628800",
     },
     {
+        name: fib_rec,
+        file: "fib_rec.snek",
+        expected: "55",
+    },
+    {
+        name: multi_level_nesting,
+        file: "multi_level_nesting.snek",
+        expected: "7",
+    },
+    {
+        name: multiple_args_nested_odd,
+        file: "multiple_args_nested_odd.snek",
+        expected: "3",
+    },
+    {
+        name: multiple_args_nested_even,
+        file: "multiple_args_nested_even.snek",
+        expected: "2",
+    },
+    {
         name: ackermann_rec,
         file: "ackermann_rec.snek",
         expected: "29",

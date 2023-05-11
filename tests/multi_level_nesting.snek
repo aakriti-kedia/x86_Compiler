@@ -1,0 +1,9 @@
+(fun (addfun n)
+    n
+) 
+
+(fun (addnested n)
+  (+ (addfun (- n 1)) (addfun (- n 2)))
+)
+
+(addnested 5)

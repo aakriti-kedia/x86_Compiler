@@ -297,7 +297,7 @@ fn instr_to_str(i: &Instr) -> String {
       // Instr::IBreak(v1) => format!("break {}", val_to_str(v1)),
       Instr::ICmovb(v1, v2) => format!("cmovb {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::IComment(comment) => format!("\t\t; {}", comment),
-      Instr::IRet() => format!("ret"),
+      Instr::IRet() => format!("ret\n"),
   }
 }
 
@@ -343,6 +343,7 @@ ans.to_string()
  
 fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &String, l: &mut i32) -> Vec<Instr> {
     let mut instr_vector = Vec::new();
+    instr_vector.push(Instr::IComment(format!("compile_expr {:?}", e)));
     match e {
         Expr::Number(n) => {
             instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(*n)));
@@ -442,13 +443,13 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
             let e2_instrs = compile_expr(subexp2, si+1, &env, &break_label, l);
             let stack_offset = si * 8;
             instr_vector.extend(e1_instrs);
-            instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX)));
+            instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX)));
             instr_vector.extend(e2_instrs);
 
             match op2 {
                 Op2::Plus => {
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
                   // instr_vector.push(Instr::IRet());
@@ -456,7 +457,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   instr_vector.extend(check_overflow(v1.clone()));
                 }
                 Op2::Minus => {
-                  let v1 = Val::RegPlusOffset(Reg::RSP, stack_offset);
+                  let v1 = Val::RegNegOffset(Reg::RSP, stack_offset);
                   let v2 = Val::Reg(Reg::RAX);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
@@ -466,7 +467,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 }
                 Op2::Times => {
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
                   instr_vector.push(Instr::ISar(v1.clone(), 1));
@@ -476,7 +477,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 }
                 Op2::Equal => {
                     let v1 = Val::Reg(Reg::RAX);
-                    let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
+                    let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
                     instr_vector.extend(check_type_match(v1.clone(), v2.clone()));
                     instr_vector.push(Instr::ICmp(v1.clone(), v2.clone()));
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(TRUE_INT)));
@@ -488,7 +489,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                     let greater_end_label = new_label(l, "greater_end");
 
                     let v1 = Val::Reg(Reg::RAX);
-                    let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
+                    let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
                     instr_vector.extend(is_num(v1.clone()));
                     instr_vector.extend(is_num(v2.clone()));
 
@@ -509,7 +510,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   let less_end_label = new_label(l, "less_end");
 
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
 
@@ -530,7 +531,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   let greater_eq_end_label = new_label(l, "greater_eq_end");
 
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
 
@@ -550,7 +551,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                   let less_eq_end_label = new_label(l, "less_eq_end");
 
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::RegPlusOffset(Reg::RSP, stack_offset);
+                  let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
 
