@@ -617,14 +617,15 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           instr_vector.push(Instr::IJmp(break_label.clone()));
         },
         Expr::Function(fun_name, args_vec) => {
-          
           let offset = si + (args_vec.len() as i32) + 1; // 1 for rdi
-          let offset = if offset % 2 == 1 {offset + 2} else {offset + 1}; // coz of call
-          let offset = offset * 8;
+          let si_offset = if offset % 2 == 1 {offset} else {offset + 1}; // coz of call
+          // let even_si_offset = if si_offset % 2 == 1 {si_offset + 1} else {si_offset};
+
+          let offset = si_offset * 8;
           let mut curr_word_offset = offset;
 
-          for arg in args_vec {
-            let arg_instrs = compile_expr(arg, si, env, break_label, l); //todo
+          for arg in args_vec.iter() {
+            let arg_instrs = compile_expr(arg, si_offset, env, break_label, l); //todo
             instr_vector.extend(arg_instrs);
             instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RAX)));
             curr_word_offset -= 8;
@@ -655,8 +656,11 @@ fn compile_definition(d: &Definition, labels: &mut i32) -> Vec<Instr> {
   let body = &d.fun_body.clone().unwrap();
   let depth = depth(&body);
   let depth = if depth % 2 == 0 { depth } else { depth + 1 };
-
   let offset = depth * 8;
+
+  // let total_depth = depth + (d.args.len() as i32);
+  // let total_depth = if total_depth % 2 == 0 { total_depth } else { total_depth + 1 };
+  // let offset = total_depth * 8;
 
   for (i, arg) in d.args.iter().enumerate() {
     env.insert(arg.clone(), (depth + (i as i32 + 1)) * 8);
@@ -687,7 +691,8 @@ fn compile_prog(prog: &Program) -> (String, String) {
   }
 
   let depth = depth(&prog.main.clone());
-  let offset = (if depth % 2 == 0 { depth } else { depth + 1 }) * 8;
+  let total_depth = if depth % 2 == 0 { depth } else { depth + 1 };
+  let offset = total_depth * 8;
 
   let main_body_instrs = compile_expr(&prog.main, si, &env, &break_label.to_owned(), &mut labels);
 
@@ -764,6 +769,16 @@ fn parse_bind(s: &Sexp,defs: &Vec<Definition>) -> Vec<(String, Expr)> {
 
 }
 
+fn is_def(s: &Sexp) -> bool {
+  match s {
+    Sexp::List(vec) => match &vec[..] {
+      [Sexp::Atom(S(fun_keyword)), Sexp::List(_), _] if fun_keyword == "fun" => true, 
+      _ => false,
+    }, 
+    _ => false
+  }
+}
+
 fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>) -> (Definition, Sexp) {
   match s {
     Sexp::List(vec) => match &vec[..] {
@@ -818,16 +833,6 @@ fn parse_def(s: &Sexp, defined_function_names: &mut HashSet<String>) -> (Definit
   }
 }
 
-fn is_def(s: &Sexp) -> bool {
-  match s {
-    Sexp::List(vec) => match &vec[..] {
-      [Sexp::Atom(S(fun_keyword)), Sexp::List(_), _] if fun_keyword == "fun" => true, 
-      _ => false,
-    }, 
-    _ => false
-  }
-}
-
 fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: &HashMap<String, Sexp>) -> Vec<Definition> {
   let mut defs_local : Vec<Definition> = vec![];
   for def in defs {
@@ -849,48 +854,6 @@ fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: &HashMap<Strin
     }
   }
   return defs_local;
-}
-
-fn parse_prog(s: &Sexp) -> Program {
-  let mut defined_function_names : HashSet<String> = HashSet::new();
-  let mut found_main = false;
-  let mut parsed_prog = None;
-
-  match s {
-    Sexp::List(vec) => {
-      let mut defs: Vec<Definition> = vec![];
-      let mut fun_body_sexp_hashmap: HashMap<String, Sexp> = HashMap::new();
-      for def_or_expr in vec {
-        if is_def(def_or_expr) {
-          if found_main {
-            panic!("Main function should be the last function: Invalid");
-          }
-          let (current_definition, current_body_sexp) = parse_def(def_or_expr, &mut defined_function_names);
-          defs.push(current_definition.clone());
-          fun_body_sexp_hashmap.insert(current_definition.fun_name.to_owned(), current_body_sexp);
-        } else {
-          parsed_prog = Some(Program {
-            defs: parse_def_body(&defs, &fun_body_sexp_hashmap),
-            main: parse_expr(def_or_expr, &defs),
-          });
-          found_main = true;
-        }
-      }
-      // if main_expr.is_some() {
-      //   return Program {
-      //     defs: parse_def_body(&defs, fun_body_sexp_hashmap),
-      //     main: parse_expr(main_expr.unwrap(), &defs),
-      //   };
-      // }
-      if found_main {
-        return parsed_prog.unwrap();
-      } else {
-        panic!("No main found: Invalid");
-      }
-      
-    }
-    _ => panic!("Program needs to be a list: Invalid"),
-  }
 }
 
 fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
@@ -968,6 +931,48 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
         _ => panic!("Invalid: Did not match any sexp type")
 
     }
+}
+
+fn parse_prog(s: &Sexp) -> Program {
+  let mut defined_function_names : HashSet<String> = HashSet::new();
+  let mut found_main = false;
+  let mut parsed_prog = None;
+
+  match s {
+    Sexp::List(vec) => {
+      let mut defs: Vec<Definition> = vec![];
+      let mut fun_body_sexp_hashmap: HashMap<String, Sexp> = HashMap::new();
+      for def_or_expr in vec {
+        if is_def(def_or_expr) {
+          if found_main {
+            panic!("Main function should be the last function: Invalid");
+          }
+          let (current_definition, current_body_sexp) = parse_def(def_or_expr, &mut defined_function_names);
+          defs.push(current_definition.clone());
+          fun_body_sexp_hashmap.insert(current_definition.fun_name.to_owned(), current_body_sexp);
+        } else {
+          parsed_prog = Some(Program {
+            defs: parse_def_body(&defs, &fun_body_sexp_hashmap),
+            main: parse_expr(def_or_expr, &defs),
+          });
+          found_main = true;
+        }
+      }
+      // if main_expr.is_some() {
+      //   return Program {
+      //     defs: parse_def_body(&defs, fun_body_sexp_hashmap),
+      //     main: parse_expr(main_expr.unwrap(), &defs),
+      //   };
+      // }
+      if found_main {
+        return parsed_prog.unwrap();
+      } else {
+        panic!("No main found: Invalid");
+      }
+      
+    }
+    _ => panic!("Program needs to be a list: Invalid"),
+  }
 }
 
 

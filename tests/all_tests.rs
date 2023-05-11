@@ -9,6 +9,11 @@ success_tests! {
         expected: "3628800",
     },
     {
+        name: ackermann_rec,
+        file: "ackermann_rec.snek",
+        expected: "29",
+    },
+    {
         name: fact_rec,
         file: "fact_rec.snek",
         input: "10",
