@@ -833,11 +833,11 @@ fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: HashMap<String
   for def in defs {
     if fun_body_sexp_hashmap.contains_key(&def.fun_name) {
       let fun_body_sexp = fun_body_sexp_hashmap.get(&def.fun_name).unwrap();
-      // let fun_body = parse_expr(fun_body_sexp, &defs);
+      let fun_body = parse_expr(fun_body_sexp, &defs);
       
-      // if has_input_type(&fun_body) {
-      //   panic!("Function body has input type: Invalid");
-      // }
+      if has_input_type(&fun_body) {
+        panic!("Function body has input type: Invalid");
+      }
 
       defs_local.push(Definition {
         fun_name: def.fun_name.to_owned(),
