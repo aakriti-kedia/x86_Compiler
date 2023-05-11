@@ -828,7 +828,7 @@ fn is_def(s: &Sexp) -> bool {
   }
 }
 
-fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: HashMap<String, Sexp>) -> Vec<Definition> {
+fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: &HashMap<String, Sexp>) -> Vec<Definition> {
   let mut defs_local : Vec<Definition> = vec![];
   for def in defs {
     if fun_body_sexp_hashmap.contains_key(&def.fun_name) {
@@ -853,24 +853,27 @@ fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: HashMap<String
 
 fn parse_prog(s: &Sexp) -> Program {
   let mut defined_function_names : HashSet<String> = HashSet::new();
-  // let mut main_expr = None;
+  let mut found_main = false;
+  let mut parsed_prog = None;
+
   match s {
     Sexp::List(vec) => {
       let mut defs: Vec<Definition> = vec![];
       let mut fun_body_sexp_hashmap: HashMap<String, Sexp> = HashMap::new();
       for def_or_expr in vec {
         if is_def(def_or_expr) {
-          // if main_expr.is_some() {
-          //   panic!("Main function should be the last function: Invalid");
-          // }
+          if found_main {
+            panic!("Main function should be the last function: Invalid");
+          }
           let (current_definition, current_body_sexp) = parse_def(def_or_expr, &mut defined_function_names);
           defs.push(current_definition.clone());
           fun_body_sexp_hashmap.insert(current_definition.fun_name.to_owned(), current_body_sexp);
         } else {
-          return Program {
-            defs: parse_def_body(&defs, fun_body_sexp_hashmap),
+          parsed_prog = Some(Program {
+            defs: parse_def_body(&defs, &fun_body_sexp_hashmap),
             main: parse_expr(def_or_expr, &defs),
-          };
+          });
+          found_main = true;
         }
       }
       // if main_expr.is_some() {
@@ -879,7 +882,12 @@ fn parse_prog(s: &Sexp) -> Program {
       //     main: parse_expr(main_expr.unwrap(), &defs),
       //   };
       // }
-      panic!("No main found: Invalid");
+      if found_main {
+        return parsed_prog.unwrap();
+      } else {
+        panic!("No main found: Invalid");
+      }
+      
     }
     _ => panic!("Program needs to be a list: Invalid"),
   }
