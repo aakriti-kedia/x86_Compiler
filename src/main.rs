@@ -853,16 +853,16 @@ fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: HashMap<String
 
 fn parse_prog(s: &Sexp) -> Program {
   let mut defined_function_names : HashSet<String> = HashSet::new();
-  let mut main_expr = None;
+  // let mut main_expr = None;
   match s {
     Sexp::List(vec) => {
       let mut defs: Vec<Definition> = vec![];
       let mut fun_body_sexp_hashmap: HashMap<String, Sexp> = HashMap::new();
       for def_or_expr in vec {
         if is_def(def_or_expr) {
-          if main_expr.is_some() {
-            panic!("Main function should be the last function: Invalid");
-          }
+          // if main_expr.is_some() {
+          //   panic!("Main function should be the last function: Invalid");
+          // }
           let (current_definition, current_body_sexp) = parse_def(def_or_expr, &mut defined_function_names);
           defs.push(current_definition.clone());
           fun_body_sexp_hashmap.insert(current_definition.fun_name.to_owned(), current_body_sexp);
