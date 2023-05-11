@@ -612,6 +612,7 @@ fn compile_definition(d: &Definition, labels: &mut i32) -> Vec<Instr> {
 
   let body = &d.fun_body.clone().unwrap();
   let depth = depth(&body);
+  let depth = if depth % 2 == 0 { depth } else { depth + 1 };
 
   let offset = depth * 8;
 
@@ -644,7 +645,7 @@ fn compile_prog(prog: &Program) -> (String, String) {
   }
 
   let depth = depth(&prog.main.clone());
-  let offset = depth * 8;
+  let offset = (if depth % 2 == 0 { depth } else { depth + 1 }) * 8;
 
   let main_body_instrs = compile_expr(&prog.main, si, &env, &break_label.to_owned(), &mut labels);
 
