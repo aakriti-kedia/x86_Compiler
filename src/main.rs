@@ -661,15 +661,29 @@ fn compile_error_defs() -> String {
 
   return "throw_error:
           mov rdi, 7
-          push rdi ; to maintain stack alignment
           push rsp
+
+          MOV RAX, RSP ; Move the current stack pointer value to RAX
+          AND RAX, 0xF ; Bitwise AND with 0xF to get the remainder when divided by 16
+          CMP RAX, 0 ; Compare the remainder with 0 to check if it is 16 byte aligned
+          JE aligned_throw_error ; If aligned, jump to the aligned label
+          SUB RSP, 8 ; If not aligned, decrement RSP by 8 bytes to make it aligned
+
+          aligned_throw_error:
           call snek_error
           ret
 
           throw_overflow_error:
           mov rdi, 8
-          push rdi ; to maintain stack alignment
           push rsp
+
+          MOV RAX, RSP ; Move the current stack pointer value to RAX
+          AND RAX, 0xF ; Bitwise AND with 0xF to get the remainder when divided by 16
+          CMP RAX, 0 ; Compare the remainder with 0 to check if it is 16 byte aligned
+          JE aligned_throw_overflow_error ; If aligned, jump to the aligned label
+          SUB RSP, 8 ; If not aligned, decrement RSP by 8 bytes to make it aligned
+
+          aligned_throw_overflow_error:
           call snek_error
           ret".to_string();
 }
