@@ -617,18 +617,21 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           instr_vector.push(Instr::IJmp(break_label.clone()));
         },
         Expr::Function(fun_name, args_vec) => {
-          let offset = si + (args_vec.len() as i32) + 1; // 1 for rdi
-          let si_offset = if offset % 2 == 1 {offset} else {offset + 1}; // coz of call
+          let local_offset = si + (args_vec.len() as i32) + 1; // 1 for rdi
+          let si_offset = if local_offset % 2 == 1 {local_offset} else {local_offset + 1}; // coz of call
           // let even_si_offset = if si_offset % 2 == 1 {si_offset + 1} else {si_offset};
 
           let offset = si_offset * 8;
           let mut curr_word_offset = offset;
 
+          let mut si_local = si_offset;
+
           for arg in args_vec.iter() {
-            let arg_instrs = compile_expr(arg, si_offset, env, break_label, l); //todo
+            let arg_instrs = compile_expr(arg, si_local, env, break_label, l); //todo
             instr_vector.extend(arg_instrs);
             instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RAX)));
             curr_word_offset -= 8;
+            si_local += 1;
           }
           
           instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RDI)));
