@@ -833,16 +833,16 @@ fn parse_def_body(defs : &Vec<Definition>, fun_body_sexp_hashmap: HashMap<String
   for def in defs {
     if fun_body_sexp_hashmap.contains_key(&def.fun_name) {
       let fun_body_sexp = fun_body_sexp_hashmap.get(&def.fun_name).unwrap();
-      let fun_body = parse_expr(fun_body_sexp, &defs);
+      // let fun_body = parse_expr(fun_body_sexp, &defs);
       
-      if has_input_type(&fun_body) {
-        panic!("Function body has input type: Invalid");
-      }
+      // if has_input_type(&fun_body) {
+      //   panic!("Function body has input type: Invalid");
+      // }
 
       defs_local.push(Definition {
         fun_name: def.fun_name.to_owned(),
         args: def.args.to_owned(),
-        fun_body: Some(fun_body),
+        fun_body: Some(parse_expr(fun_body_sexp, &defs)),
       })
     } else {
       panic!("Function not defined: Invalid");
@@ -867,15 +867,18 @@ fn parse_prog(s: &Sexp) -> Program {
           defs.push(current_definition.clone());
           fun_body_sexp_hashmap.insert(current_definition.fun_name.to_owned(), current_body_sexp);
         } else {
-          main_expr = Some(def_or_expr);
+          return Program {
+            defs: parse_def_body(&defs, fun_body_sexp_hashmap),
+            main: parse_expr(def_or_expr, &defs),
+          };
         }
       }
-      if main_expr.is_some() {
-        return Program {
-          defs: parse_def_body(&defs, fun_body_sexp_hashmap),
-          main: parse_expr(main_expr.unwrap(), &defs),
-        };
-      }
+      // if main_expr.is_some() {
+      //   return Program {
+      //     defs: parse_def_body(&defs, fun_body_sexp_hashmap),
+      //     main: parse_expr(main_expr.unwrap(), &defs),
+      //   };
+      // }
       panic!("No main found: Invalid");
     }
     _ => panic!("Program needs to be a list: Invalid"),
