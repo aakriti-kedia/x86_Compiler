@@ -656,6 +656,24 @@ fn compile_prog(prog: &Program) -> (String, String) {
   (decode_instrs_vec_to_string(&defs_instr_vector), decode_instrs_vec_to_string(&main_instr_vect))
 }
 
+fn compile_error_defs() -> String {
+  // write assembly instructions to align the code before snek_error is called
+
+  return "throw_error:
+          mov rdi, 7
+          push rdi ; to maintain stack alignment
+          push rsp
+          call snek_error
+          ret
+
+          throw_overflow_error:
+          mov rdi, 8
+          push rdi ; to maintain stack alignment
+          push rsp
+          call snek_error
+          ret".to_string();
+}
+
 
 // parsing 
 
@@ -900,36 +918,28 @@ fn main() -> std::io::Result<()> {
     println!("parse_prog - {:?}", prog);
 
     let (defs, main) = compile_prog(&prog);
+    let error_defs = compile_error_defs();
     // let result = "mov rax, 1";
 
     let asm_program = format!(
         "
-section .text
-global our_code_starts_here
-extern snek_print
-extern snek_error
+          section .text
+          global our_code_starts_here
+          extern snek_print
+          extern snek_error
 
-throw_error:
-mov rdi, 7
-push rsp
-call snek_error
-ret
+          {}
 
-throw_overflow_error:
-mov rdi, 8
-push rsp
-call snek_error
-ret
+          {}
 
-{}
-
-our_code_starts_here:
-  {}
-  ret
-",
-defs,
-main
-    );
+          our_code_starts_here:
+            {}
+            ret
+          ",
+          error_defs,
+          defs,
+          main
+      );
 
     let mut out_file = File::create(out_name)?;
     out_file.write_all(asm_program.as_bytes())?;
