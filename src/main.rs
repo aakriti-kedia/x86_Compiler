@@ -8,12 +8,17 @@ use sexp::*;
 use im::HashMap;
 use std::collections::HashSet;
 
-const TRUE_INT :i64 = 3;
-const FALSE_INT :i64 = 1;
+const TRUE_INT :i64 = 7;
+const FALSE_INT :i64 = 3;
 const INT_ONE :i64 = 2;
+
+const ARRAY_TAG_INT: i64 = 1;
+const DEFAULT_VALUE_INT: i64 = 9; // todo: check
 
 const I63_MAX : i64 = 4611686018427387903;
 const I63_MIN : i64 = -4611686018427387904;
+
+static NIL_STRING: &str = "0x0001"; // todo: check
 
 static ALL_RESERVED_WORDS: &'static [&str] = &["true", "false", "add1", "sub1", "isnum", 
                                       "isbool", "input" ,"let", "block", "set", "if", "break", 
@@ -36,7 +41,8 @@ struct Definition {
 #[derive(Debug, Clone)]
 enum Val {
     Reg(Reg),
-    Imm(i64),
+    ImmInt(i64),
+    ImmString(String),
     RegPlusOffset(Reg, i32),
     RegNegOffset(Reg, i32),
 }
@@ -47,6 +53,8 @@ enum Reg {
     RBX,
     RSP,
     RDI,
+    R15,
+    RCX,
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +89,7 @@ enum Instr {
     IJo(String),
     ICmovb(Val, Val),
     IComment(String),
+    IString(String),
 
 }
 
@@ -111,6 +120,7 @@ enum Expr {
     True, 
     False,
     Input,
+    Nil,
     Id(String),
     Let(Vec<(String, Expr)>, Box<Expr>),
     UnOp(Op1, Box<Expr>),
@@ -122,6 +132,9 @@ enum Expr {
     Break(Box<Expr>),
 
     Function(String, Vec<Expr>),
+    Array(Box<Expr>, Vec<Expr>),
+    GetArrayIndex(Box<Expr>, Box<Expr>),
+    SetArrayIndex(Box<Expr>, Box<Expr>, Box<Expr>)
 }
 
 //helpers
@@ -132,6 +145,7 @@ fn depth(e: &Expr) -> i32 {
     Expr::True => 0,
     Expr::False => 0,
     Expr::Input => 0,
+    Expr::Nil => 0,
     Expr::Id(_) => 0,
     Expr::Let(bindings, body) => {
       // enumerate bindings and find the max of depth(binding) + enumeration value and depth(body) + enumeration from bindings  + 1
@@ -147,6 +161,10 @@ fn depth(e: &Expr) -> i32 {
     Expr::Break(expr) => depth(expr),
     // for Expr::Function enumerate and find the max of depth(expr) + enumeration value
     Expr::Function(_, exprs) => exprs.iter().enumerate().map(|(i, expr)| depth(expr) + (i as i32)).max().unwrap_or(0),
+    // todo: update, check function also
+    Expr::Array(size_expr, exprs) => depth(size_expr).max(exprs.iter().map(|expr| depth(expr)).max().unwrap_or(0)),
+    Expr::GetArrayIndex(addr_expr, index_expr) => depth(addr_expr).max(depth(index_expr) + 1),
+    Expr::SetArrayIndex(addr_expr, index_expr, value_expr) => depth(addr_expr).max(depth(index_expr) + 1).max(depth(value_expr) + 2),
   }
 }
 
@@ -163,6 +181,7 @@ fn has_input_type(expr: &Expr) -> bool {
       Expr::True => false,
       Expr::False => false,
       Expr::Input => true,
+      Expr::Nil => false,
       Expr::Id(_) => false,
       Expr::Let(bindings, body) => {
           let mut has_input = false;
@@ -197,7 +216,22 @@ fn has_input_type(expr: &Expr) -> bool {
               has_input |= has_input_type(arg);
           }
           has_input
-      }
+      },
+      Expr::Array(size_expr, exprs) => {
+          let mut has_input = has_input_type(size_expr);
+          for expr in exprs.iter() {
+              has_input |= has_input_type(expr);
+          }
+          has_input
+      },
+      Expr::GetArrayIndex(addr_expr, index_expr) => {
+          has_input_type(addr_expr) || has_input_type(index_expr)
+      },
+      Expr::SetArrayIndex(addr_expr, index_expr, value_expr) => {
+          has_input_type(addr_expr)
+              || has_input_type(index_expr)
+              || has_input_type(value_expr)
+      },
   }
 }
 
@@ -221,8 +255,8 @@ fn check_if_num(v: Val) -> Vec<Instr> {
 fn check_input_num(v: Val) -> Vec<Instr> {
   let mut instr_vect = check_if_num(v);
   instr_vect.push(Instr::IComment("check if input num".to_string()));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(3)));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(1)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(TRUE_INT)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(FALSE_INT)));
   instr_vect.push(Instr::ICmovb(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
   instr_vect
 }
@@ -236,8 +270,8 @@ fn is_num(v: Val) -> Vec<Instr> {
 fn check_input_bool(v: Val) -> Vec<Instr> {
   let mut instr_vect = check_if_bool(v);
   instr_vect.push(Instr::IComment("check if input bool".to_string()));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(1)));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(3)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(TRUE_INT)));
   instr_vect.push(Instr::ICmovb(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
   instr_vect
 }
@@ -255,7 +289,7 @@ fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
   instr_vect.push(Instr::IComment("check if type mismatch".to_string()));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1));
   instr_vect.push(Instr::IXor(Val::Reg(Reg::RBX), v2));
-  instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::Imm(FALSE_INT)));
+  instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::ImmInt(1)));
   instr_vect.push(Instr::IJne("throw_error".to_string()));
   instr_vect
 }
@@ -274,6 +308,7 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IJl(label) => format!("jl {}", label),
       Instr::IJle(label) => format!("jle {}", label),
       Instr::ICall(fun_name) => format!("call {}", fun_name),
+      Instr::IString(val) => format!("{}", val),
       // Instr::IPush(v1) => format!("push {}", val_to_str(v1)),
       // Instr::IPop(v1) => format!("pop {}", val_to_str(v1)),
       // Instr::IJz(label) => format!("jz {}", label),
@@ -307,6 +342,8 @@ fn reg_str(reg_name: &Reg) -> String {
       Reg::RSP => "rsp", 
       Reg::RBX => "rbx", 
       Reg::RDI => "rdi", 
+      Reg::R15 => "r15",
+      Reg::RCX => "rcx",
   }.to_string()
 }
 
@@ -315,7 +352,8 @@ fn val_to_str(v: &Val) -> String {
       Val::Reg(reg_name) => {
         reg_str(reg_name)
       },
-      Val::Imm(num) => num.to_string(),
+      Val::ImmInt(num) => num.to_string(),
+      Val::ImmString(address) => address.to_string(),
       Val::RegNegOffset(reg_name, stack_offset) => {
           let reg_name = reg_str(reg_name);
           format!("[{} - {}]", reg_name, stack_offset)
@@ -346,19 +384,22 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
     instr_vector.push(Instr::IComment(format!("compile_expr {:?}", e)));
     match e {
         Expr::Number(n) => {
-            instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(*n)));
+            instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(*n)));
             instr_vector.extend(check_overflow(Val::Reg(Reg::RAX)));
         }, 
         Expr::True => {
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(TRUE_INT)))
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(TRUE_INT)))
         },
         Expr::False => {
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)))
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)))
         },
         Expr::Input => {
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Reg(Reg::RDI)));
           instr_vector.extend(check_overflow(Val::Reg(Reg::RAX)))
         },
+        Expr::Nil => {
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmString(NIL_STRING.to_string())));
+        }
         Expr::Id(s) => {
             println!("env {:?}, s = {}", *env, s);
             if env.contains_key(s) {
@@ -398,7 +439,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
             match op1 {
                 Op1::Add1 => {
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::Imm(INT_ONE);
+                  let v2 = Val::ImmInt(INT_ONE);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
                   instr_vector.push(Instr::IAdd(v1.clone(), v2.clone()));
@@ -406,7 +447,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                 }
                 Op1::Sub1 => {
                   let v1 = Val::Reg(Reg::RAX);
-                  let v2 = Val::Imm(INT_ONE);
+                  let v2 = Val::ImmInt(INT_ONE);
                   instr_vector.extend(is_num(v1.clone()));
                   instr_vector.extend(is_num(v2.clone()));
                   instr_vector.push(Instr::ISub(v1.clone(), v2.clone()));
@@ -424,7 +465,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
 
                   let rdi_offset = 0;
 
-                  instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+                  instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));
 
                   instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, rdi_offset), Val::Reg(Reg::RDI)));
         
@@ -434,7 +475,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
         
                   instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::RegPlusOffset(Reg::RSP, rdi_offset)));
 
-                  instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));                  
+                  instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));                  
                 }
             };
         }, 
@@ -480,8 +521,8 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
                     let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
                     instr_vector.extend(check_type_match(v1.clone(), v2.clone()));
                     instr_vector.push(Instr::ICmp(v1.clone(), v2.clone()));
-                    instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Imm(TRUE_INT)));
-                    instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)));
+                    instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(TRUE_INT)));
+                    instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
                     instr_vector.push(Instr::ICmove(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
                 }
                 Op2::Greater => {
@@ -495,11 +536,11 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
 
                     instr_vector.push(Instr::ICmp(v1.clone(), v2.clone()));
                     instr_vector.push(Instr::IJl(greater_label.clone())); // comparing 2nd with 1st param
-                    instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)));
+                    instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
                     instr_vector.push(Instr::IJmp(greater_end_label.clone()));
 
                     let mut block_instrs = Vec::new();
-                    block_instrs.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(TRUE_INT)));
+                    block_instrs.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(TRUE_INT)));
 
                     instr_vector.push(Instr::ILabel(greater_label, block_instrs));
                     instr_vector.push(Instr::ILabel(greater_end_label, Vec::new()));
@@ -516,11 +557,11 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
 
                   instr_vector.push(Instr::ICmp(v1.clone(), v2.clone()));
                   instr_vector.push(Instr::IJg(less_label.clone())); // comparing 2nd with 1st param
-                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)));
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
                   instr_vector.push(Instr::IJmp(less_end_label.clone()));
 
                   let mut block_instrs = Vec::new();
-                  block_instrs.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(TRUE_INT)));
+                  block_instrs.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(TRUE_INT)));
 
                   instr_vector.push(Instr::ILabel(less_label, block_instrs));
                   instr_vector.push(Instr::ILabel(less_end_label, Vec::new()));
@@ -537,11 +578,11 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
 
                   instr_vector.push(Instr::ICmp(v1.clone(), v2.clone()));
                   instr_vector.push(Instr::IJle(greater_eq_label.clone())); // comparing 2nd with 1st param
-                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)));
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
                   instr_vector.push(Instr::IJmp(greater_eq_end_label.clone()));
 
                   let mut block_instrs = Vec::new();
-                  block_instrs.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(TRUE_INT)));
+                  block_instrs.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(TRUE_INT)));
 
                   instr_vector.push(Instr::ILabel(greater_eq_label, block_instrs));
                   instr_vector.push(Instr::ILabel(greater_eq_end_label, Vec::new()));
@@ -557,11 +598,11 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
 
                   instr_vector.push(Instr::ICmp(v1.clone(), v2.clone()));
                   instr_vector.push(Instr::IJge(less_eq_label.clone())); // comparing 2nd with 1st param
-                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)));
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
                   instr_vector.push(Instr::IJmp(less_eq_end_label.clone()));
 
                   let mut block_instrs = Vec::new();
-                  block_instrs.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Imm(TRUE_INT)));
+                  block_instrs.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(TRUE_INT)));
 
                   instr_vector.push(Instr::ILabel(less_eq_label, block_instrs));
                   instr_vector.push(Instr::ILabel(less_eq_end_label, Vec::new()));
@@ -576,7 +617,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           let then_instrs = compile_expr(then_exp, si, &env, &break_label, l);
           let else_instrs = compile_expr(else_exp, si, &env, &break_label, l);
           instr_vector.extend(cond_instrs);
-          instr_vector.push(Instr::ICmp(Val::Reg(Reg::RAX), Val::Imm(FALSE_INT)));
+          instr_vector.push(Instr::ICmp(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
           instr_vector.push(Instr::IJe(else_label.clone()));
           instr_vector.extend(then_instrs);
           instr_vector.push(Instr::IJmp(end_label.clone()));
@@ -594,9 +635,6 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           }
         }
         Expr::Block(block_instrs_expr) => {
-          if block_instrs_expr.len() < 1 {
-            panic!("Invalid");
-          }
           for instr_expr in block_instrs_expr.iter() {
             instr_vector.extend(compile_expr(instr_expr, si, &env, &break_label, l));
           }
@@ -637,15 +675,111 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           
           instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, curr_word_offset), Val::Reg(Reg::RDI)));
           
-          instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+          instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));
 
           instr_vector.push(Instr::ICall(fun_name.to_string()));
 
-          instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+          instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));
           
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::RegNegOffset(Reg::RSP, curr_word_offset)));
           
+        }, 
+        Expr::Array(size_expr, array_exprs) => {
+          let mut offset = 0;
+          instr_vector.extend(compile_expr(size_expr, si, &env, &break_label, l));
+          instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::R15, offset * 8), Val::Reg(Reg::RAX)));
+          offset += 1;
+
+          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, si * 8), Val::Reg(Reg::RAX))); // size value to stack
+
+          for expr in array_exprs.iter() {
+            instr_vector.extend(compile_expr(expr, si + 1, &env, &break_label, l));
+            instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::R15, offset * 8), Val::Reg(Reg::RAX)));
+            offset += 1;
+          }
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(array_exprs.len() as i64))); // actual no. of elements
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, si * 8))); // expected no. of elements
+
+          instr_vector.push(Instr::ICmp(Val::Reg(Reg::RBX), Val::Reg(Reg::RAX)));
+
+          instr_vector.push(Instr::IJg("throw_index_out_of_bounds_error".to_string()));
+
+          instr_vector.push(Instr::ISub(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX))); // no. of empty spaces
+          instr_vector.push(Instr::ISub(Val::Reg(Reg::RCX), Val::Reg(Reg::RAX))); // for rep instruction
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(DEFAULT_VALUE_INT))); // value to be filled
+
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Reg(Reg::R15)));
+          instr_vector.push(Instr::IAdd(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
+
+
+          instr_vector.push(Instr::IAdd(Val::Reg(Reg::R15), Val::ImmInt(offset.into())));
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::Reg(Reg::R15)));
+          instr_vector.push(Instr::IString("cld".to_string()));
+          instr_vector.push(Instr::IString("rep stosb".to_string()));
+          instr_vector.push(Instr::IAdd(Val::Reg(Reg::R15), Val::Reg(Reg::RDI)));
+
+          
+          // for alignment
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::Reg(Reg::R15)));
+          instr_vector.push(Instr::IString("AND RBX, 0xF".to_string()));
+          //cmp rbx with 0
+          instr_vector.push(Instr::ICmp(Val::Reg(Reg::RBX), Val::ImmInt(0.into())));
+          instr_vector.push(Instr::IJne("continue_processing".to_string()));
+          //add 8 to r15
+          instr_vector.push(Instr::IAdd(Val::Reg(Reg::R15), Val::ImmInt(8.into())));
+          instr_vector.push(Instr::ILabel("continue_processing".to_string(), Vec::new()));
+        },
+        Expr::GetArrayIndex(addr_expr, index_expr) => {
+
+          instr_vector.extend(compile_expr(addr_expr, si, &env, &break_label, l)); // addr value in RAX
+          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, si * 8), Val::Reg(Reg::RAX)));
+          
+          instr_vector.extend(compile_expr(index_expr, si + 1, &env, &break_label, l)); 
+          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, (si + 1) * 8), Val::Reg(Reg::RAX)));
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, si * 8))); // address value
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RAX, 0))); // actual value = size of array
+
+          instr_vector.push(Instr::ICmp(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, (si + 1) * 8))); // size vs index
+          instr_vector.push(Instr::IJg("throw_index_out_of_bounds_error".to_string()));
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, (si + 1) * 8)));
+          instr_vector.push(Instr::IMul(Val::Reg(Reg::RBX), Val::ImmInt(8)));
+          instr_vector.push(Instr::ISub(Val::Reg(Reg::RBX), Val::ImmInt(1)));
+          instr_vector.push(Instr::IAdd(Val::Reg(Reg::RBX), Val::Reg(Reg::RAX)));
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegPlusOffset(Reg::RBX, 0))); // address value
         }
+
+        Expr::SetArrayIndex(addr_expr, index_expr, value_expr) => {
+
+          instr_vector.extend(compile_expr(addr_expr, si, &env, &break_label, l)); // addr value in RAX
+          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, si * 8), Val::Reg(Reg::RAX)));
+          
+          instr_vector.extend(compile_expr(index_expr, si + 1, &env, &break_label, l)); 
+          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, (si + 1) * 8), Val::Reg(Reg::RAX)));
+
+          instr_vector.extend(compile_expr(value_expr, si + 2, &env, &break_label, l)); 
+          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, (si + 2) * 8), Val::Reg(Reg::RAX)));
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, si * 8))); // address value
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RAX, 0))); // actual value = size of array
+
+          instr_vector.push(Instr::ICmp(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, (si + 1) * 8))); // size vs index
+          instr_vector.push(Instr::IJg("throw_index_out_of_bounds_error".to_string()));
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, (si + 1) * 8)));
+          instr_vector.push(Instr::IMul(Val::Reg(Reg::RBX), Val::ImmInt(8)));
+          instr_vector.push(Instr::ISub(Val::Reg(Reg::RBX), Val::ImmInt(1)));
+          instr_vector.push(Instr::IAdd(Val::Reg(Reg::RBX), Val::Reg(Reg::RAX)));
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, (si + 2) * 8))); // value
+
+          instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RBX, 0), Val::Reg(Reg::RAX))); 
+        }
+
     }
     instr_vector.to_vec()
 }
@@ -671,9 +805,9 @@ fn compile_definition(d: &Definition, labels: &mut i32) -> Vec<Instr> {
   }
 
   let mut body_instrs = Vec::new();
-  body_instrs.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+  body_instrs.push(Instr::ISub(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));
   body_instrs.extend(compile_expr(&body, si, &env, &break_label.to_owned(), labels));
-  body_instrs.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+  body_instrs.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));
 
   instr_vector.push(Instr::ILabel(d.fun_name.to_owned(), body_instrs));
 
@@ -701,9 +835,9 @@ fn compile_prog(prog: &Program) -> (String, String) {
   let main_body_instrs = compile_expr(&prog.main, si, &env, &break_label.to_owned(), &mut labels);
 
   let mut main_instr_vect = Vec::new();
-  main_instr_vect.push(Instr::ISub(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+  main_instr_vect.push(Instr::ISub(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));
   main_instr_vect.extend(main_body_instrs);
-  main_instr_vect.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::Imm(offset.into())));
+  main_instr_vect.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));
 
   (decode_instrs_vec_to_string(&defs_instr_vector), decode_instrs_vec_to_string(&main_instr_vect))
 }
@@ -711,6 +845,7 @@ fn compile_prog(prog: &Program) -> (String, String) {
 fn compile_error_defs() -> String {
   // write assembly instructions to align the code before snek_error is called
 
+  //todo: check
   return "throw_error:
           mov rdi, 7
           push rsp
@@ -720,6 +855,7 @@ fn compile_error_defs() -> String {
           CMP RAX, 0 ; Compare the remainder with 0 to check if it is 16 byte aligned
           JE aligned_throw_error ; If aligned, jump to the aligned label
           SUB RSP, 8 ; If not aligned, decrement RSP by 8 bytes to make it aligned
+          JMP aligned_throw_error
 
           aligned_throw_error:
           call snek_error
@@ -732,12 +868,22 @@ fn compile_error_defs() -> String {
           MOV RAX, RSP ; Move the current stack pointer value to RAX
           AND RAX, 0xF ; Bitwise AND with 0xF to get the remainder when divided by 16
           CMP RAX, 0 ; Compare the remainder with 0 to check if it is 16 byte aligned
-          JE aligned_throw_overflow_error ; If aligned, jump to the aligned label
+          JE aligned_throw_error ; If aligned, jump to the aligned label
           SUB RSP, 8 ; If not aligned, decrement RSP by 8 bytes to make it aligned
+          JMP aligned_throw_error
 
-          aligned_throw_overflow_error:
-          call snek_error
-          ret".to_string();
+          throw_index_out_of_bounds_error:
+          mov rdi, 9
+          push rsp
+
+          MOV RAX, RSP ; Move the current stack pointer value to RAX
+          AND RAX, 0xF ; Bitwise AND with 0xF to get the remainder when divided by 16
+          CMP RAX, 0 ; Compare the remainder with 0 to check if it is 16 byte aligned
+          JE aligned_throw_error ; If aligned, jump to the aligned label
+          SUB RSP, 8 ; If not aligned, decrement RSP by 8 bytes to make it aligned
+          JMP aligned_throw_error
+
+          ".to_string();
 }
 
 
@@ -880,6 +1026,7 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                 "true" => Expr::True,
                 "false" => Expr::False,
                 "input" => Expr::Input,
+                "nil" => Expr::Nil,
                 _ => Expr::Id(id.to_string()),
             }
         },
@@ -928,6 +1075,22 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                   if defs.iter().any(|def| def.fun_name == fun_name.to_string() && def.args.len() == rest.len()) => {
                     Expr::Function(fun_name.to_string(), 
                       rest.iter().map(|arg_val| parse_expr(arg_val, &defs)).collect())
+                }
+                [Sexp::Atom(S(op)), size_sexp, rest @ ..] if op == "array" => {
+                  let mut list_vals = Vec::new();
+                  for sub_exp in rest.iter() {
+                    list_vals.push(parse_expr(sub_exp, &defs));
+                  }
+                  Expr::Array(Box::new(parse_expr(size_sexp, &defs)), list_vals)
+                }
+                [Sexp::Atom(S(op)), address_expr, index_expr] if op == "getIndex" => {
+                  Expr::GetArrayIndex(Box::new(parse_expr(address_expr, &defs)), 
+                                      Box::new(parse_expr(index_expr, &defs)))
+                }
+                [Sexp::Atom(S(op)), address_expr, index_expr, value_expr] if op == "setIndex" => {
+                  Expr::SetArrayIndex(Box::new(parse_expr(address_expr, &defs)), 
+                                      Box::new(parse_expr(index_expr, &defs)), 
+                                      Box::new(parse_expr(value_expr, &defs)))
                 }
                 _ => panic!("Invalid: Did not match any defined list operations {:?}", vec)
             }
