@@ -85,7 +85,7 @@ enum Instr {
     ISar(Val, u64), 
     IJc(String), 
     ICall(String),
-    // IJnc(String),
+    IJnc(String),
     IJo(String),
     ICmovb(Val, Val),
     IComment(String),
@@ -318,7 +318,7 @@ fn evaluate_addr_and_index_array(si: i32, addr_expr: &Expr, index_expr: &Expr, e
   let stack_offset = si * 8;
 
   instr_vector.extend(compile_expr(addr_expr, si, &env, &break_label, l)); // addr value in RAX
-  // instr_vector.extend(is_array(Val::Reg(Reg::RAX)));
+  instr_vector.extend(is_array(Val::Reg(Reg::RAX)));
   instr_vector.push(Instr::ISub(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
   instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX))); // addr value without tag
   
@@ -328,6 +328,17 @@ fn evaluate_addr_and_index_array(si: i32, addr_expr: &Expr, index_expr: &Expr, e
   instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset + 8), Val::Reg(Reg::RAX))); // index value in RBX
 
   return instr_vector;
+}
+
+fn is_array(v: Val) -> Vec<Instr> {
+  let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IComment("check if array".to_string()));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
+  instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // last bit should be 1
+  instr_vect.push(Instr::IJnc("throw_error".to_string()));
+  instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // 2nd last bit should be 0
+  instr_vect.push(Instr::IJc("throw_error".to_string()));
+  instr_vect
 }
 
 // instr to string helpers
@@ -353,7 +364,7 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IJe(label) => format!("je {}", label),
       Instr::IJc(label) => format!("jc {}", label),
       Instr::IJo(label) => format!("jo {}", label),
-      // Instr::IJnc(label) => format!("jnc {}", label),
+      Instr::IJnc(label) => format!("jnc {}", label),
       Instr::ISar(v1, bits) => format!("sar {}, {}", val_to_str(v1), bits),
       Instr::IJmp(label) => format!("jmp {}", label),
       Instr::IJne(label) => format!("jne {}", label),

@@ -3,6 +3,11 @@ mod infra;
 // Your tests go here!
 success_tests! {
     {
+        name: points_fun,
+        file: "points_fun.snek",
+        expected: "(5, 9)",
+    },
+    {
         name: array_initialized_odd,
         file: "array_initialized_odd.snek",
         expected: "(3, 4, 3, 5, 5)",
@@ -663,6 +668,11 @@ runtime_error_tests! {
     {
         name: get_array_index_boolean,
         file: "get_array_index_boolean.snek",
+        expected: "invalid",
+    },
+    {
+        name: get_index_num,
+        file: "get_index_num.snek",
         expected: "invalid",
     },
     {

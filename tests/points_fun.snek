@@ -1,0 +1,6 @@
+(fun (points x y) (array x y))
+
+(fun (pointsAddition p1 p2) (array (+ (getIndex p1 1) (getIndex p2 1)) (+ (getIndex p1 2) (getIndex p2 2))))
+
+(pointsAddition (points 2 4) (points 3 5))
+
