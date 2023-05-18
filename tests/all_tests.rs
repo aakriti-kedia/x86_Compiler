@@ -3,6 +3,36 @@ mod infra;
 // Your tests go here!
 success_tests! {
     {
+        name: array_initialized_odd,
+        file: "array_initialized_odd.snek",
+        expected: "(3, 4, 3, 5, 5)",
+    },
+    {
+        name: array_initialized_even,
+        file: "array_initialized_even.snek",
+        expected: "(1, 2)",
+    },
+    {
+        name: get_array_index_odd,
+        file: "get_array_index_odd.snek",
+        expected: "13",
+    },
+    {
+        name: get_array_index_even,
+        file: "get_array_index_even.snek",
+        expected: "5",
+    },
+    {
+        name: set_array_index_odd,
+        file: "set_array_index_odd.snek",
+        expected: "(2, 6, 44, 5)",
+    },
+    {
+        name: set_array_index_even,
+        file: "set_array_index_even.snek",
+        expected: "(2, 6, 4, 55)",
+    },
+    {
         name: fact,
         file: "fact.snek",
         input: "10",
@@ -600,6 +630,16 @@ success_tests! {
 }
 
 runtime_error_tests! {
+    {
+        name: get_array_out_of_bounds,
+        file: "get_array_index_out_of_bounds.snek",
+        expected: "index_out_of_bounds_error",
+    },
+    {
+        name: set_array_out_of_bounds,
+        file: "set_array_index_out_of_bounds.snek",
+        expected: "index_out_of_bounds_error",
+    },
     {
         name: invalid_argument,
         file: "invalid_argument.snek",

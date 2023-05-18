@@ -21,38 +21,44 @@ pub extern "C" fn snek_error(errcode: i64) {
     match errcode {
         7 => eprintln!("invalid argument: type mismatch"),
         8 => eprintln!("overflow on operation"),
-        _ => eprintln!("invalid argument: random error"),
+        9 => eprintln!("index_out_of_bounds_error for array"),
+        err_code => eprintln!("invalid argument: random error {err_code}"),
     }
     std::process::exit(1);
 }
 
 #[export_name = "\x01snek_print"]
 pub extern "C" fn snek_print(val: i64) -> i64 {
-    snek_to_str(val);
+    println!("{}", snek_to_str(val));
     val
 }
 
-fn snek_to_str(val: i64) {
-    if val == TRUE_INT { println!("true"); }
-    else if val == FALSE_INT { println!("false"); }
+fn snek_to_str(val: i64) -> String {
+    if val == TRUE_INT { return format!("true"); }
+    else if val == FALSE_INT { return format!("false"); }
     else if val % 2 == 0 {
-        println!("{}", (val >> 1));
+        return format!("{}", (val >> 1));
     } else if val == NIL_INT {
-        println!("nil");
+        return format!("nil");
     } else if val & 1 == 1 { // indicates array / list / tuple / multiple values
+        // println!("array addr - {}", val);
         let addr = (val - 1) as *const i64;
         let mut array_str = String::new();
         array_str.push_str("(");
         let size = unsafe { *addr };
+        // println!("size - {}", size);
         for i in 0..size {
             let value = unsafe { *addr.offset(i as isize + 1) };
-            array_str.push_str(&snek_print(value).to_string());
+            array_str.push_str(&snek_to_str(value).to_string());
+            if i != size - 1 {
+                array_str.push_str(&", ".to_string());
+            }
         }
         array_str.push_str(")");
-        println!("{}", array_str);
+        return format!("{}", array_str);
     }
     else {
-        println!("Unknown value: {}", val);
+        return format!("Unknown value: {}", val);
     }
 }
 
@@ -77,16 +83,7 @@ fn parse_input(input: &str) -> i64 {
 }
 
 fn print_value(i: i64) {
-    // println!("print_value {}", i);
-    if i % 2 == 0 {
-        println!("{}", (i >> 1));
-    } else if i == TRUE_INT {
-        println!("true");
-    } else if i == FALSE_INT {
-        println!("false");
-    } else {
-        println!("unknown");
-    } 
+    println!("{}", snek_to_str(i));
 }
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -96,8 +93,6 @@ fn main() {
 
     let mut memory = Vec::<i64>::with_capacity(1000000);
     let buffer : *mut i64 = memory.as_mut_ptr();
-
-    // println!("input - {}", input);
 
     let i: i64 = unsafe { our_code_starts_here(input, buffer) };
     print_value(i);
