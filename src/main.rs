@@ -294,6 +294,42 @@ fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
   instr_vect
 }
 
+// array helpers
+fn access_array_index_addr(si: i32) -> Vec<Instr> {
+  let mut instr_vector = Vec::new();
+  let stack_offset = si * 8;
+
+  instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, stack_offset))); // address value
+  instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RAX, 0))); // actual value = size of array
+
+  instr_vector.push(Instr::ICmp(Val::RegNegOffset(Reg::RSP, stack_offset + 8), Val::Reg(Reg::RBX))); // index vs size
+
+  instr_vector.push(Instr::IJg("throw_index_out_of_bounds_error".to_string()));
+
+  instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, stack_offset + 8)));
+  instr_vector.push(Instr::IMul(Val::Reg(Reg::RBX), Val::ImmInt(8)));
+  instr_vector.push(Instr::IAdd(Val::Reg(Reg::RBX), Val::Reg(Reg::RAX)));
+
+  return instr_vector;
+}
+
+fn evaluate_addr_and_index_array(si: i32, addr_expr: &Expr, index_expr: &Expr, env: & HashMap<String, i32>, break_label: &String, l: &mut i32) -> Vec<Instr> {
+  let mut instr_vector = Vec::new();
+  let stack_offset = si * 8;
+
+  instr_vector.extend(compile_expr(addr_expr, si, &env, &break_label, l)); // addr value in RAX
+  // instr_vector.extend(is_array(Val::Reg(Reg::RAX)));
+  instr_vector.push(Instr::ISub(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
+  instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX))); // addr value without tag
+  
+  instr_vector.extend(compile_expr(index_expr, si + 1, &env, &break_label, l)); 
+  instr_vector.extend(is_num(Val::Reg(Reg::RAX)));
+  instr_vector.push(Instr::ISar(Val::Reg(Reg::RAX), 1)); // to get num represen without tag
+  instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset + 8), Val::Reg(Reg::RAX))); // index value in RBX
+
+  return instr_vector;
+}
+
 // instr to string helpers
 fn instr_to_str(i: &Instr) -> String {
   match i {
@@ -379,7 +415,7 @@ ans.to_string()
 
 // compiling
  
-fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &String, l: &mut i32) -> Vec<Instr> {
+fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &String, l: &mut i32) -> Vec<Instr> {
     let mut instr_vector = Vec::new();
     instr_vector.push(Instr::IComment(format!("compile_expr {:?}", e)));
     match e {
@@ -719,27 +755,11 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           instr_vector.push(Instr::IAdd(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
         },
         Expr::GetArrayIndex(addr_expr, index_expr) => {
-          let stack_offset = si * 8;
-
-          instr_vector.extend(compile_expr(addr_expr, si, &env, &break_label, l)); // addr value in RAX
-          instr_vector.push(Instr::ISub(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
-          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX))); // addr value without tag
           
-          instr_vector.extend(compile_expr(index_expr, si + 1, &env, &break_label, l)); 
-          instr_vector.push(Instr::ISar(Val::Reg(Reg::RAX), 1)); // to get num represen without tag
-          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset + 8), Val::Reg(Reg::RAX))); // index value in RBX
+          instr_vector.extend(evaluate_addr_and_index_array(si, addr_expr, index_expr, &env, &break_label, l));
 
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, stack_offset))); // address value
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RAX, 0))); // actual value = size of array
-
-          instr_vector.push(Instr::ICmp(Val::RegNegOffset(Reg::RSP, stack_offset + 8), Val::Reg(Reg::RBX))); // index vs size
-
-          instr_vector.push(Instr::IJg("throw_index_out_of_bounds_error".to_string()));
-
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, stack_offset + 8)));
-          instr_vector.push(Instr::IMul(Val::Reg(Reg::RBX), Val::ImmInt(8)));
-          instr_vector.push(Instr::IAdd(Val::Reg(Reg::RBX), Val::Reg(Reg::RAX)));
-
+          instr_vector.extend(access_array_index_addr(si));
+          
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegPlusOffset(Reg::RBX, 0))); // address value
         }
 
@@ -747,27 +767,12 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
 
           let stack_offset = si * 8;
 
-          instr_vector.extend(compile_expr(addr_expr, si, &env, &break_label, l)); // addr value in RAX
-          instr_vector.push(Instr::ISub(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
-          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX))); // addr value without tag
-          
-          instr_vector.extend(compile_expr(index_expr, si + 1, &env, &break_label, l)); 
-          instr_vector.push(Instr::ISar(Val::Reg(Reg::RAX), 1)); // to get num represen without tag
-          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset + 8), Val::Reg(Reg::RAX))); // index value in RBX
+          instr_vector.extend(evaluate_addr_and_index_array(si, addr_expr, index_expr, &env, &break_label, l));
 
           instr_vector.extend(compile_expr(value_expr, si + 2, &env, &break_label, l)); 
           instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset + 16), Val::Reg(Reg::RAX)));
 
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, stack_offset))); // address value
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RAX, 0))); // actual value = size of array
-
-          instr_vector.push(Instr::ICmp(Val::RegNegOffset(Reg::RSP, stack_offset + 8), Val::Reg(Reg::RBX))); // index vs size
-
-          instr_vector.push(Instr::IJg("throw_index_out_of_bounds_error".to_string()));
-
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, stack_offset + 8)));
-          instr_vector.push(Instr::IMul(Val::Reg(Reg::RBX), Val::ImmInt(8)));
-          instr_vector.push(Instr::IAdd(Val::Reg(Reg::RBX), Val::Reg(Reg::RAX)));
+          instr_vector.extend(access_array_index_addr(si));
 
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, stack_offset + 16))); // value
 

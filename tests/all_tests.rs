@@ -661,6 +661,11 @@ runtime_error_tests! {
         expected: "index_out_of_bounds_error",
     },
     {
+        name: get_array_index_boolean,
+        file: "get_array_index_boolean.snek",
+        expected: "invalid",
+    },
+    {
         name: set_array_out_of_bounds,
         file: "set_array_index_out_of_bounds.snek",
         expected: "index_out_of_bounds_error",
