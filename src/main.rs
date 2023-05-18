@@ -694,11 +694,9 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, size_offset), Val::Reg(Reg::RAX))); // size value to stack
 
           // move [r15] into stack 
-          // move in RCX r15
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RCX), Val::Reg(Reg::R15)));
           instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, addr_offset), Val::Reg(Reg::RCX)));
 
-          // // increment r15 with 1 + len (+ 1 for size)
           let mut r15_offset = (array_exprs.len() as i32 + 1);
           if r15_offset % 2 == 1 {r15_offset += 1};
           instr_vector.push(Instr::IAdd(Val::Reg(Reg::R15), Val::ImmInt((r15_offset * 8).into())));
@@ -708,7 +706,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RCX, offset * 8), Val::Reg(Reg::RAX)));
           offset += 1;
 
-          let mut si_local = si;
+          let mut si_local = si + 3;
           for expr in array_exprs.iter() {
             instr_vector.extend(compile_expr(expr, si_local, &env, &break_label, l));
             instr_vector.push(Instr::IMov(Val::Reg(Reg::RCX), Val::RegNegOffset(Reg::RSP, addr_offset)));
@@ -719,9 +717,6 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
 
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, addr_offset)));
           instr_vector.push(Instr::IAdd(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
-          // instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX)));
-
-          
         },
         Expr::GetArrayIndex(addr_expr, index_expr) => {
           let stack_offset = si * 8;
