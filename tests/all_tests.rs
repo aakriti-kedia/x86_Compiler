@@ -13,6 +13,11 @@ success_tests! {
         expected: "(1, 2)",
     },
     {
+        name: nested_array_init,
+        file: "nested_array_init.snek",
+        expected: "(1, (2, 3), (4, (5, 6)), (7, (8, 9)))",
+    },
+    {
         name: get_array_index_odd,
         file: "get_array_index_odd.snek",
         expected: "13",
@@ -23,6 +28,11 @@ success_tests! {
         expected: "5",
     },
     {
+        name: nested_array_get,
+        file: "nested_array_get.snek",
+        expected: "(4, (5, 6))",
+    },
+    {
         name: set_array_index_odd,
         file: "set_array_index_odd.snek",
         expected: "(2, 6, 44, 5)",
@@ -31,6 +41,21 @@ success_tests! {
         name: set_array_index_even,
         file: "set_array_index_even.snek",
         expected: "(2, 6, 4, 55)",
+    },
+    {
+        name: nested_array_set_num,
+        file: "nested_array_set_num.snek",
+        expected: "(1, (2, 3), 5, (7, (8, 9)))",
+    },
+    {
+        name: nested_array_set_array,
+        file: "nested_array_set_array.snek",
+        expected: "(1, (2, 3), (4, 5, 6, 7, 8), (7, (8, 9)))",
+    },
+    {
+        name: nested_array_set_nested_array,
+        file: "nested_array_set_nested_array.snek",
+        expected: "(1, (2, 3), (41, (42, 43), (44, 45, (46, (47, 48)))), (7, (8, 9)))",
     },
     {
         name: fact,

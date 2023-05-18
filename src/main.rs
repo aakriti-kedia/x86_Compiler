@@ -13,7 +13,7 @@ const FALSE_INT :i64 = 3;
 const INT_ONE :i64 = 2;
 
 const ARRAY_TAG_INT: i64 = 1;
-const DEFAULT_VALUE_INT: i64 = 9; // todo: check
+// const DEFAULT_VALUE_INT: i64 = 9; // todo: check
 
 const I63_MAX : i64 = 4611686018427387903;
 const I63_MIN : i64 = -4611686018427387904;
@@ -89,7 +89,7 @@ enum Instr {
     IJo(String),
     ICmovb(Val, Val),
     IComment(String),
-    IString(String),
+    // IString(String),
 
 }
 
@@ -308,7 +308,7 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IJl(label) => format!("jl {}", label),
       Instr::IJle(label) => format!("jle {}", label),
       Instr::ICall(fun_name) => format!("call {}", fun_name),
-      Instr::IString(val) => format!("{}", val),
+      // Instr::IString(val) => format!("{}", val),
       // Instr::IPush(v1) => format!("push {}", val_to_str(v1)),
       // Instr::IPop(v1) => format!("pop {}", val_to_str(v1)),
       // Instr::IJz(label) => format!("jz {}", label),
@@ -697,7 +697,7 @@ fn compile_expr(e: & Expr, si: i32, env: & HashMap<String, i32>, break_label: &S
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RCX), Val::Reg(Reg::R15)));
           instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, addr_offset), Val::Reg(Reg::RCX)));
 
-          let mut r15_offset = (array_exprs.len() as i32 + 1);
+          let mut r15_offset = array_exprs.len() as i32 + 1;
           if r15_offset % 2 == 1 {r15_offset += 1};
           instr_vector.push(Instr::IAdd(Val::Reg(Reg::R15), Val::ImmInt((r15_offset * 8).into())));
 
