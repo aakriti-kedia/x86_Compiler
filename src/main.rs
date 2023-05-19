@@ -83,6 +83,7 @@ enum Instr {
     // IBreak(Val),
     IRet(),
     ISar(Val, u64), 
+    ISal(Val, u64), 
     IJc(String), 
     ICall(String),
     IJnc(String),
@@ -134,7 +135,8 @@ enum Expr {
     Function(String, Vec<Expr>),
     Array(Vec<Expr>),
     GetArrayIndex(Box<Expr>, Box<Expr>),
-    SetArrayIndex(Box<Expr>, Box<Expr>, Box<Expr>)
+    SetArrayIndex(Box<Expr>, Box<Expr>, Box<Expr>),
+    GetArraySize(Box<Expr>),
 }
 
 //helpers
@@ -165,6 +167,7 @@ fn depth(e: &Expr) -> i32 {
     Expr::Array(exprs) => exprs.iter().map(|expr| depth(expr)).max().unwrap_or(0),
     Expr::GetArrayIndex(addr_expr, index_expr) => depth(addr_expr).max(depth(index_expr) + 1),
     Expr::SetArrayIndex(addr_expr, index_expr, value_expr) => depth(addr_expr).max(depth(index_expr) + 1).max(depth(value_expr) + 2),
+    Expr::GetArraySize(addr_expr) => depth(addr_expr),
   }
 }
 
@@ -232,6 +235,7 @@ fn has_input_type(expr: &Expr) -> bool {
               || has_input_type(index_expr)
               || has_input_type(value_expr)
       },
+      Expr::GetArraySize(addr_expr) => has_input_type(addr_expr),
   }
 }
 
@@ -313,7 +317,7 @@ fn access_array_index_addr(si: i32) -> Vec<Instr> {
   return instr_vector;
 }
 
-fn evaluate_addr_and_index_array(si: i32, addr_expr: &Expr, index_expr: &Expr, env: & HashMap<String, i32>, break_label: &String, l: &mut i32) -> Vec<Instr> {
+fn evaluate_addr(si: i32, addr_expr: &Expr, env: & HashMap<String, i32>, break_label: &String, l: &mut i32) -> Vec<Instr> {
   let mut instr_vector = Vec::new();
   let stack_offset = si * 8;
 
@@ -321,9 +325,22 @@ fn evaluate_addr_and_index_array(si: i32, addr_expr: &Expr, index_expr: &Expr, e
   instr_vector.extend(is_array(Val::Reg(Reg::RAX)));
   instr_vector.push(Instr::ISub(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
   instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset), Val::Reg(Reg::RAX))); // addr value without tag
+
+  return instr_vector;
+}
+
+fn evaluate_addr_and_index_array(si: i32, addr_expr: &Expr, index_expr: &Expr, env: & HashMap<String, i32>, break_label: &String, l: &mut i32) -> Vec<Instr> {
+  let mut instr_vector = Vec::new();
+  let stack_offset = si * 8;
+
+  instr_vector.extend(evaluate_addr(si, addr_expr, &env, &break_label, l));
   
   instr_vector.extend(compile_expr(index_expr, si + 1, &env, &break_label, l)); 
   instr_vector.extend(is_num(Val::Reg(Reg::RAX)));
+
+  instr_vector.push(Instr::ICmp(Val::Reg(Reg::RAX), Val::ImmInt(0)));
+  instr_vector.push(Instr::IJle("throw_index_out_of_bounds_error".to_string()));
+
   instr_vector.push(Instr::ISar(Val::Reg(Reg::RAX), 1)); // to get num represen without tag
   instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, stack_offset + 8), Val::Reg(Reg::RAX))); // index value in RBX
 
@@ -366,6 +383,7 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IJo(label) => format!("jo {}", label),
       Instr::IJnc(label) => format!("jnc {}", label),
       Instr::ISar(v1, bits) => format!("sar {}, {}", val_to_str(v1), bits),
+      Instr::ISal(v1, bits) => format!("sal {}, {}", val_to_str(v1), bits),
       Instr::IJmp(label) => format!("jmp {}", label),
       Instr::IJne(label) => format!("jne {}", label),
       Instr::IXor(v1, v2) => format!("xor {}, {}", val_to_str(v1), val_to_str(v2)),
@@ -773,7 +791,6 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
           
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegPlusOffset(Reg::RBX, 0))); // address value
         }
-
         Expr::SetArrayIndex(addr_expr, index_expr, value_expr) => {
 
           let stack_offset = si * 8;
@@ -793,7 +810,19 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, stack_offset))); 
           instr_vector.push(Instr::IAdd(Val::Reg(Reg::RAX), Val::ImmInt(ARRAY_TAG_INT)));
         }
+        Expr::GetArraySize(addr_expr) => {
+          instr_vector.extend(evaluate_addr(si + 1, addr_expr, &env, &break_label, l));
 
+          let stack_offset = (si + 1) * 8;
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::RegNegOffset(Reg::RSP, stack_offset))); // address value
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RAX, 0))); // actual value = size of array
+
+          // represent as num
+          instr_vector.push(Instr::ISal(Val::Reg(Reg::RBX), 1));
+
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX))); // size value
+        }
     }
     instr_vector.to_vec()
 }
@@ -1105,6 +1134,9 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                   Expr::SetArrayIndex(Box::new(parse_expr(address_expr, &defs)), 
                                       Box::new(parse_expr(index_expr, &defs)), 
                                       Box::new(parse_expr(value_expr, &defs)))
+                }
+                [Sexp::Atom(S(op)), address_expr] if op == "getSize" => {
+                  Expr::GetArraySize(Box::new(parse_expr(address_expr, &defs)))
                 }
                 _ => panic!("Invalid: Did not match any defined list operations {:?}", vec)
             }

@@ -63,6 +63,21 @@ success_tests! {
         expected: "(1, (2, 3), (41, (42, 43), (44, 45, (46, (47, 48)))), (7, (8, 9)))",
     },
     {
+        name: get_array_size,
+        file: "get_array_size.snek",
+        expected: "7",
+    },
+    {
+        name: bst_search_found,
+        file: "bst_search_found.snek",
+        expected: "(10, 8, 12, 6, 9, 11, 14)\n11\n1\n3\n6\ntrue",
+    },
+    {
+        name: bst_search_not_found,
+        file: "bst_search_not_found.snek",
+        expected: "(10, 8, 12, 6, 9, 11, 14)\n15\n1\n3\n7\n15\nfalse",
+    },
+    {
         name: fact,
         file: "fact.snek",
         input: "10",
