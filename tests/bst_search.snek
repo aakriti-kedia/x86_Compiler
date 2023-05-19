@@ -1,0 +1,39 @@
+(fun (search_bst_recur bst_base_addr elm) 
+    (
+        block
+        (print bst_base_addr)
+        (
+            if (isnil bst_base_addr)
+            false
+            (
+                block
+                (if (= (getIndex bst_base_addr 1) elm)
+                true
+                (
+                    if (> (getIndex bst_base_addr 1) elm)
+                    (search_bst_recur (getIndex bst_base_addr 2)  elm)
+                    (search_bst_recur (getIndex bst_base_addr 3)  elm)
+                ))
+            )
+        )
+    )
+)
+
+(fun (search_bst bst_base_addr elm)
+    (
+        block
+            (print bst_base_addr)
+            (print elm)
+            (search_bst_recur bst_base_addr elm)
+    )
+)
+
+(block
+(print (search_bst (array 10 
+                (array 8 (array 6 nil nil) (array 9 nil nil))
+			    (array 12 (array 11 nil nil) (array 15 nil nil)))
+            15))
+(print (search_bst (array 10 
+                (array 8 (array 6 nil nil) (array 9 nil nil))
+			    (array 12 (array 11 nil nil) (array 15 nil nil)))
+            13)))

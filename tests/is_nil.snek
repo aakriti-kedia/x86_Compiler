@@ -1,0 +1,5 @@
+(block
+    (print (isnil true))
+    (print (isnil 5))
+    (print (isnil nil))
+)

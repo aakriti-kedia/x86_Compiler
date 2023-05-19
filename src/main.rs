@@ -66,6 +66,7 @@ enum Instr {
     IXor(Val, Val),
     ITest(Val, Val),
     ICmove(Val, Val),
+    IAnd(Val, Val),
     IJg(String),
     IJge(String),
     IJl(String),
@@ -99,6 +100,7 @@ enum Op1 {
     Sub1,
     IsNum, 
     IsBool,
+    IsNil,
     Print,
 }
 
@@ -112,6 +114,7 @@ enum Op2 {
     GreaterEqual, 
     Less, 
     LessEqual,
+    CheckTypeMatch,
 }
 
 #[derive(Clone, Debug)]
@@ -287,9 +290,9 @@ fn check_if_bool(v: Val) -> Vec<Instr> {
   instr_vect
 }
 
-fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
+fn check_bool_num_type_match(v1: Val, v2: Val) -> Vec<Instr> {
   let mut instr_vect = Vec::new();
-  instr_vect.push(Instr::IComment("check if type mismatch".to_string()));
+  instr_vect.push(Instr::IComment("check_bool_num_type_match".to_string()));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1));
   instr_vect.push(Instr::IXor(Val::Reg(Reg::RBX), v2));
   instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::ImmInt(1)));
@@ -297,7 +300,33 @@ fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
   instr_vect
 }
 
+fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
+  let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IComment("check_type_match".to_string()));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RCX), v2));
+
+  instr_vect.push(Instr::IAnd(Val::Reg(Reg::RBX), Val::ImmInt(3))); // to isolate the last two digits
+  instr_vect.push(Instr::IAnd(Val::Reg(Reg::RCX), Val::ImmInt(3))); // to isolate the last two digits
+
+  instr_vect.push(Instr::ICmp(Val::Reg(Reg::RBX), Val::Reg(Reg::RCX)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(TRUE_INT)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
+  instr_vect.push(Instr::ICmove(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
+  instr_vect
+}
+
 // array helpers
+fn check_if_nil(v: Val) -> Vec<Instr> {
+  let mut instr_vect = Vec::new();
+  instr_vect.push(Instr::IComment("check if nil".to_string()));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
+  instr_vect.push(Instr::ICmp(Val::Reg(Reg::RBX), Val::ImmInt(NIL_INT)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(TRUE_INT)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
+  instr_vect.push(Instr::ICmove(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
+  instr_vect
+}
 fn access_array_index_addr(si: i32) -> Vec<Instr> {
   let mut instr_vector = Vec::new();
   let stack_offset = si * 8;
@@ -366,6 +395,7 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IMul(v1, v2) => format!("imul {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::ICmp(v1, v2) => format!("cmp {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::ICmove(v1, v2) => format!("cmove {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::IAnd(v1, v2) => format!("and {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::IJg(label) => format!("jg {}", label),
       Instr::IJge(label) => format!("jge {}", label),
       Instr::IJl(label) => format!("jl {}", label),
@@ -523,6 +553,9 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
                 Op1::IsBool => {
                   instr_vector.extend(check_input_bool(Val::Reg(Reg::RAX)));
                 },
+                Op1::IsNil => {
+                  instr_vector.extend(check_if_nil(Val::Reg(Reg::RAX)));
+                },
                 Op1::Print => {
                   let index = if si % 2 == 1 { si + 2 } else { si + 3 };
                   let offset = index * 8;
@@ -583,7 +616,7 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
                 Op2::Equal => {
                     let v1 = Val::Reg(Reg::RAX);
                     let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
-                    instr_vector.extend(check_type_match(v1.clone(), v2.clone()));
+                    instr_vector.extend(check_bool_num_type_match(v1.clone(), v2.clone()));
                     instr_vector.push(Instr::ICmp(v1.clone(), v2.clone()));
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(TRUE_INT)));
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
@@ -670,6 +703,11 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
 
                   instr_vector.push(Instr::ILabel(less_eq_label, block_instrs));
                   instr_vector.push(Instr::ILabel(less_eq_end_label, Vec::new()));
+                }
+                Op2::CheckTypeMatch => {
+                  let v1 = Val::Reg(Reg::RAX);
+                  let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
+                  instr_vector.extend(check_type_match(v1.clone(), v2.clone()));
                 }
 
             }
@@ -1078,6 +1116,7 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                 [Sexp::Atom(S(op)), e] if op == "sub1" => Expr::UnOp(Op1::Sub1, Box::new(parse_expr(e, &defs))),
                 [Sexp::Atom(S(op)), e] if op == "isnum" => Expr::UnOp(Op1::IsNum, Box::new(parse_expr(e, &defs))),
                 [Sexp::Atom(S(op)), e] if op == "isbool" => Expr::UnOp(Op1::IsBool, Box::new(parse_expr(e, &defs))),
+                [Sexp::Atom(S(op)), e] if op == "isnil" => Expr::UnOp(Op1::IsNil, Box::new(parse_expr(e, &defs))),
                 [Sexp::Atom(S(op)), e] if op == "print" => Expr::UnOp(Op1::Print, Box::new(parse_expr(e, &defs))),
                 [Sexp::Atom(S(op)), e] if op == "loop" => Expr::Loop(Box::new(parse_expr(e, &defs))),
                 [Sexp::Atom(S(op)), e] if op == "break" => Expr::Break(Box::new(parse_expr(e, &defs))),
@@ -1091,8 +1130,8 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                 [Sexp::Atom(S(op)), e1, e2] if op == ">=" => Expr::BinOp(Op2::GreaterEqual, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
                 [Sexp::Atom(S(op)), e1, e2] if op == "<=" => Expr::BinOp(Op2::LessEqual, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
 
-                [Sexp::Atom(S(op)), cond_exp, then_exp, else_exp] 
-                  if op == "if" => Expr::If(Box::new(parse_expr(cond_exp, &defs)), 
+                [Sexp::Atom(S(op)), cond_exp, then_exp, else_exp] if op == "if" =>
+                   Expr::If(Box::new(parse_expr(cond_exp, &defs)), 
                                             Box::new(parse_expr(then_exp, &defs)), 
                                             Box::new(parse_expr(else_exp, &defs))),
 
@@ -1118,6 +1157,8 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                     Expr::Function(fun_name.to_string(), 
                       rest.iter().map(|arg_val| parse_expr(arg_val, &defs)).collect())
                 }
+                [Sexp::Atom(S(op)), e1, e2] if op == "checkTypeMatch" => 
+                      Expr::BinOp(Op2::CheckTypeMatch, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
                 [Sexp::Atom(S(op)), rest @ ..] if op == "array" => {
                   let mut list_vals = Vec::new();
                   for sub_exp in rest.iter() {

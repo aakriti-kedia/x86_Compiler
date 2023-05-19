@@ -83,14 +83,29 @@ success_tests! {
         expected: "7",
     },
     {
-        name: bst_search_found,
-        file: "bst_search_found.snek",
-        expected: "(10, 8, 12, 6, 9, 11, 14)\n11\n1\n3\n6\ntrue",
+        name: get_size_empty_array,
+        file: "get_size_empty_array.snek",
+        expected: "0",
     },
     {
-        name: bst_search_not_found,
-        file: "bst_search_not_found.snek",
-        expected: "(10, 8, 12, 6, 9, 11, 14)\n15\n1\n3\n7\n15\nfalse",
+        name: bst_search,
+        file: "bst_search.snek",
+        expected: "(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n15\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(12, (11, nil, nil), (15, nil, nil))\n(15, nil, nil)\ntrue\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n13\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(12, (11, nil, nil), (15, nil, nil))\n(15, nil, nil)\nnil\nfalse\nfalse",
+    },
+    {
+        name: bst_insert,
+        file: "bst_insert.snek",
+        expected: "(10, nil, nil)\n(10, (8, nil, nil), nil)\n(10, (8, nil, nil), (12, nil, nil))\n(10, (8, (6, nil, nil), nil), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))",
+    },
+    {
+        name: is_nil,
+        file: "is_nil.snek",
+        expected: "false\nfalse\ntrue\ntrue",
+    },
+    {
+        name: check_type_match,
+        file: "check_type_match.snek",
+        expected: "false\nfalse\ntrue\nfalse\ntrue\ntrue\ntrue",
     },
     {
         name: fact,

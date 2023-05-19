@@ -1,0 +1,38 @@
+(fun (insert_bst_recur bst_base_addr elm) 
+    (
+        block
+        (
+            if (isnil bst_base_addr)
+                (array elm nil nil)
+                (
+                    if (= (getIndex bst_base_addr 1) elm)
+                        bst_base_addr
+                        (
+                            if (> (getIndex bst_base_addr 1) elm)
+                                (array (getIndex bst_base_addr 1) (insert_bst_recur (getIndex bst_base_addr 2) elm) (getIndex bst_base_addr 3))
+                                (array (getIndex bst_base_addr 1) (getIndex bst_base_addr 2) (insert_bst_recur (getIndex bst_base_addr 3) elm))
+                        )
+                )
+        )
+    )
+)
+
+(fun (insert_bst_elm bst_base_addr elm)
+    (
+        print (insert_bst_recur bst_base_addr elm)
+    )
+)
+
+(insert_bst_elm
+    (insert_bst_elm
+        (insert_bst_elm
+            (insert_bst_elm    
+                (insert_bst_elm
+                    (insert_bst_elm 
+                        (insert_bst_elm nil 10) 8
+                    ) 12
+                ) 6
+            ) 9
+        ) 11
+    ) 15
+)
