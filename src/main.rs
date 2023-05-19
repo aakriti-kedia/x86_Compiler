@@ -11,14 +11,13 @@ use std::collections::HashSet;
 const TRUE_INT :i64 = 7;
 const FALSE_INT :i64 = 3;
 const INT_ONE :i64 = 2;
+const NIL_INT :i64 = 1;
 
 const ARRAY_TAG_INT: i64 = 1;
 // const DEFAULT_VALUE_INT: i64 = 9; // todo: check
 
 const I63_MAX : i64 = 4611686018427387903;
 const I63_MIN : i64 = -4611686018427387904;
-
-static NIL_STRING: &str = "0x0001"; // todo: check
 
 static ALL_RESERVED_WORDS: &'static [&str] = &["true", "false", "add1", "sub1", "isnum", 
                                       "isbool", "input" ,"let", "block", "set", "if", "break", 
@@ -42,7 +41,7 @@ struct Definition {
 enum Val {
     Reg(Reg),
     ImmInt(i64),
-    ImmString(String),
+    // ImmString(String),
     RegPlusOffset(Reg, i32),
     RegNegOffset(Reg, i32),
 }
@@ -418,7 +417,7 @@ fn val_to_str(v: &Val) -> String {
         reg_str(reg_name)
       },
       Val::ImmInt(num) => num.to_string(),
-      Val::ImmString(address) => address.to_string(),
+      // Val::ImmString(address) => address.to_string(),
       Val::RegNegOffset(reg_name, stack_offset) => {
           let reg_name = reg_str(reg_name);
           format!("[{} - {}]", reg_name, stack_offset)
@@ -463,7 +462,7 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
           instr_vector.extend(check_overflow(Val::Reg(Reg::RAX)))
         },
         Expr::Nil => {
-          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmString(NIL_STRING.to_string())));
+          instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(NIL_INT)));
         }
         Expr::Id(s) => {
             println!("env {:?}, s = {}", *env, s);

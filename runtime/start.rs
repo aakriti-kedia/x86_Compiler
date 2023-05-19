@@ -5,7 +5,7 @@ const I63_MIN : i64 = -4611686018427387904;
 
 const TRUE_INT: i64 = 7;
 const FALSE_INT: i64 = 3;
-const NIL_INT: i64 = 9;
+const NIL_INT: i64 = 1;
 
 #[link(name = "our_code")]
 extern "C" {
@@ -34,6 +34,7 @@ pub extern "C" fn snek_print(val: i64) -> i64 {
 }
 
 fn snek_to_str(val: i64) -> String {
+    // println!("val - {}", val);
     if val == TRUE_INT { return format!("true"); }
     else if val == FALSE_INT { return format!("false"); }
     else if val % 2 == 0 {
@@ -93,6 +94,7 @@ fn main() {
 
     let mut memory = Vec::<i64>::with_capacity(1000000);
     let buffer : *mut i64 = memory.as_mut_ptr();
+    // println!("buffer addr - {:p}", buffer);
 
     let i: i64 = unsafe { our_code_starts_here(input, buffer) };
     print_value(i);

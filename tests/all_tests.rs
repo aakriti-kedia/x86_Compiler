@@ -8,6 +8,21 @@ success_tests! {
         expected: "(5, 9)",
     },
     {
+        name: bst_search_with_nil_found,
+        file: "bst_search_with_nil_found.snek",
+        expected: "(10, 8, 12, 6, 9, 11, 14, nil, nil, nil, nil, nil, nil, 13, 15)\n15\n1\n3\n7\n15\ntrue",
+    },
+    {
+        name: bst_search_with_nil_not_found,
+        file: "bst_search_with_nil_not_found.snek",
+        expected: "(10, 8, 12, 6, 9, 11, 14, nil, nil, nil, nil, nil, nil, 13, 15)\n20\n1\n3\n7\n15\n31\nfalse",
+    },
+    {
+        name: array_with_nil,
+        file: "array_with_nil.snek",
+        expected: "(10, nil, 12)",
+    },
+    {
         name: array_initialized_odd,
         file: "array_initialized_odd.snek",
         expected: "(3, 4, 3, 5, 5)",

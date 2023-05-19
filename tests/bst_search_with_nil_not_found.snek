@@ -1,0 +1,30 @@
+(fun (search_bst_recur bst_base_addr offset elm) 
+    (
+        block
+        (print offset)
+        (
+            if (> offset (getSize bst_base_addr))
+            false
+            (
+                if (= (getIndex bst_base_addr offset) elm)
+                true
+                (
+                    if (> (getIndex bst_base_addr offset) elm)
+                    (search_bst_recur bst_base_addr (* 2 offset) elm)
+                    (search_bst_recur bst_base_addr (+ (* 2 offset) 1) elm)
+                )
+            )
+        )
+    )
+)
+
+(fun (search_bst bst_base_addr elm)
+    (
+        block
+            (print bst_base_addr)
+            (print elm)
+            (search_bst_recur bst_base_addr 1 elm)
+    )
+)
+
+(search_bst (array 10 8 12 6 9 11 14 nil nil nil nil nil nil 13 15) 20)
