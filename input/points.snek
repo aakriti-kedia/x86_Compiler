@@ -1,0 +1,16 @@
+(fun (points x y) (array x y))
+
+(fun (pointsAddition p1 p2) 
+        (array (+ (getIndex p1 1) (getIndex p2 1)) (+ (getIndex p1 2) (getIndex p2 2))))
+
+(block
+    (print (pointsAddition (points 2 4) (points 3 5)))
+    (print (pointsAddition (points 5 10) (points 15 20)))
+    (print (pointsAddition (points 0 0) (points 5 10)))
+    (print (pointsAddition (points -1 -2) (points 5 10)))
+    (print (pointsAddition (points (* 2 3) -2) (points 5 10)))
+    (print (pointsAddition (points (* 2 3) (- 2 4)) (points 5 10)))
+    (print (pointsAddition (points (* 2 3) (- 4 2)) (points 5 10)))
+)
+
+

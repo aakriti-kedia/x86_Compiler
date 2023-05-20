@@ -1,0 +1,22 @@
+(block
+    (print (array 10 nil 12))
+    (print (array 3 4 3 5 5))
+    (print (array 1 2))
+    (print (array 1 (array 2 3) (array 4 (array 5 6)) (array 7 (array 8 9))))
+
+    (print (getIndex (array 2 6 13 4 5) 3))
+    (print (getIndex (array 2 6 4 5) 4))
+    (print (getIndex (array 1 (array 2 3) (array 4 (array 5 6)) (array 7 (array 8 9))) 3))
+
+    (print (setIndex (array 2 6 4 5) 3 44))
+    (print (setIndex (array 2 6 4 5) 4 55))
+    (print (setIndex (array 1 (array 2 3) (array 4 (array 5 6)) (array 7 (array 8 9))) 3 5))
+
+    (print (setIndex (array 1 (array 2 3) (array 4 (array 5 6)) (array 7 (array 8 9))) 3 
+                    (array 4 5 6 7 8)))
+                    
+    (print (setIndex (array 1 (array 2 3) (array 4 (array 5 6)) (array 7 (array 8 9))) 3 
+                    (array 41 (array 42 43) (array 44 45 (array 46 (array 47 48))))))
+
+    (print (getSize (array 10 8 12 6 9 11 14)))
+)
