@@ -1162,6 +1162,11 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                 [Sexp::Atom(S(op)), rest @ ..] if op == "array" => {
                   let mut list_vals = Vec::new();
                   for sub_exp in rest.iter() {
+                    if let Sexp::Atom(S(array_val)) = sub_exp {
+                      if ALL_RESERVED_WORDS.contains(&&array_val[..]) {
+                        panic!("array binding contains a keyword");
+                      }
+                    }
                     list_vals.push(parse_expr(sub_exp, &defs));
                   }
                   Expr::Array(list_vals)

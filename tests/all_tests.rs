@@ -3,6 +3,21 @@ mod infra;
 // Your tests go here!
 success_tests! {
     {
+        name: simple_examples,
+        file: "simple_examples.snek",
+        expected: "(10, nil, 12)\n(3, 4, 3, 5, 5)\n(1, 2)\n(1, (2, 3), (4, (5, 6)), (7, (8, 9)))\n13\n5\n(4, (5, 6))\n(2, 6, 44, 5)\n(2, 6, 4, 55)\n(1, (2, 3), 5, (7, (8, 9)))\n(1, (2, 3), (4, 5, 6, 7, 8), (7, (8, 9)))\n(1, (2, 3), (41, (42, 43), (44, 45, (46, (47, 48)))), (7, (8, 9)))\n7\n7",
+    },
+    {
+        name: points,
+        file: "points.snek",
+        expected: "(5, 9)\n(20, 30)\n(5, 10)\n(4, 8)\n(11, 8)\n(11, 8)\n(11, 12)\n(11, 12)",
+    },
+    {
+        name: bst,
+        file: "bst.snek",
+        expected: "(10, nil, nil)\n(10, (8, nil, nil), nil)\n(10, (8, nil, nil), (12, nil, nil))\n(10, (8, (6, nil, nil), nil), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n9\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(8, (6, nil, nil), (9, nil, nil))\n(9, nil, nil)\ntrue\n(10, nil, nil)\n(10, (8, nil, nil), nil)\n(10, (8, nil, nil), (12, nil, nil))\n(10, (8, (6, nil, nil), nil), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n14\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(12, (11, nil, nil), (15, nil, nil))\n(15, nil, nil)\nnil\nfalse\nfalse",
+    },
+    {
         name: points_fun,
         file: "points_fun.snek",
         expected: "(5, 9)",
@@ -706,8 +721,14 @@ success_tests! {
 
 runtime_error_tests! {
     {
+        name: error_tag,
+        file: "error-tag.snek",
+        input: "false",
+        expected: "invalid",
+    },
+    {
         name: get_array_out_of_bounds,
-        file: "get_array_index_out_of_bounds.snek",
+        file: "error-bounds.snek",
         expected: "index_out_of_bounds_error",
     },
     {
@@ -1018,6 +1039,11 @@ static_error_tests! {
         name: incorrect_arg,
         file: "incorrect_arg.snek",
         expected: "Invalid",
+    },
+    {
+        name: array_input,
+        file: "error3.snek",
+        expected: "keyword",
     },
     {
         name: fun_def_input,
