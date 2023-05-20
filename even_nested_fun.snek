@@ -1,3 +1,0 @@
-(fun (printx x) (+ x 1))
-
-(printx (printx (printx (printx (printx (printx (printx (printx (printx (printx 1))))))))))
