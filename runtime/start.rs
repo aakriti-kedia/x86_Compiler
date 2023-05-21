@@ -29,11 +29,12 @@ pub extern "C" fn snek_error(errcode: i64) {
 
 #[export_name = "\x01snek_print"]
 pub extern "C" fn snek_print(val: i64) -> i64 {
-    println!("{}", snek_to_str(val));
+    let mut seen = Vec::<i64>::new();
+    println!("{}", snek_to_str(val, &mut seen));
     val
 }
 
-fn snek_to_str(val: i64) -> String {
+fn snek_to_str(val: i64, seen : &mut Vec<i64>) -> String {
     // println!("val - {}", val);
     if val == TRUE_INT { return format!("true"); }
     else if val == FALSE_INT { return format!("false"); }
@@ -43,6 +44,8 @@ fn snek_to_str(val: i64) -> String {
         return format!("nil");
     } else if val & 1 == 1 { // indicates array / list / tuple / multiple values
         // println!("array addr - {}", val);
+        if seen.contains(&val)  { return "(pair <cyclic>)".to_string() }
+        seen.push(val);
         let addr = (val - 1) as *const i64;
         let mut array_str = String::new();
         array_str.push_str("(");
@@ -50,12 +53,13 @@ fn snek_to_str(val: i64) -> String {
         // println!("size - {}", size);
         for i in 0..size {
             let value = unsafe { *addr.offset(i as isize + 1) };
-            array_str.push_str(&snek_to_str(value).to_string());
+            array_str.push_str(&snek_to_str(value, seen).to_string());
             if i != size - 1 {
                 array_str.push_str(&", ".to_string());
             }
         }
         array_str.push_str(")");
+        seen.pop();
         return format!("{}", array_str);
     }
     else {
@@ -84,7 +88,8 @@ fn parse_input(input: &str) -> i64 {
 }
 
 fn print_value(i: i64) {
-    println!("{}", snek_to_str(i));
+    let mut seen = Vec::<i64>::new();
+    println!("{}", snek_to_str(i, &mut seen));
 }
 fn main() {
     let args: Vec<String> = env::args().collect();
