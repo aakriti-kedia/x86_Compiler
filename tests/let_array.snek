@@ -1,0 +1,5 @@
+(let ((x (array 10 20 30)))
+    (block
+        (print (getIndex x 1))
+        (print (+ (getIndex x 1) (getIndex x 2)))
+))

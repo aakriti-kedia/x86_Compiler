@@ -166,10 +166,10 @@ fn depth(e: &Expr) -> i32 {
     // for Expr::Function enumerate and find the max of depth(expr) + enumeration value
     Expr::Function(_, exprs) => exprs.iter().enumerate().map(|(i, expr)| depth(expr) + (i as i32)).max().unwrap_or(0),
     // todo: update, check function also
-    Expr::Array(exprs) => exprs.iter().map(|expr| depth(expr)).max().unwrap_or(0),
+    Expr::Array(exprs) => exprs.iter().enumerate().map(|(i, expr)| depth(expr) + (i as i32) + 3).max().unwrap_or(0),
     Expr::GetArrayIndex(addr_expr, index_expr) => depth(addr_expr).max(depth(index_expr) + 1),
     Expr::SetArrayIndex(addr_expr, index_expr, value_expr) => depth(addr_expr).max(depth(index_expr) + 1).max(depth(value_expr) + 2),
-    Expr::GetArraySize(addr_expr) => depth(addr_expr),
+    Expr::GetArraySize(addr_expr) => depth(addr_expr) + 1,
   }
 }
 

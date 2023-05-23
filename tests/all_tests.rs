@@ -98,6 +98,11 @@ success_tests! {
         expected: "(43, 22, (75, 26, 34, (12, 34, 56, 78, 90, (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, (pair <cyclic>), 13, 14, 15))))\n(43, 22, (75, 26, 34, (12, 34, 56, 78, 90, (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, (pair <cyclic>), 13, 14, 15))))",
     },
     {
+        name: let_array,
+        file: "let_array.snek",
+        expected: "10\n30\n30",
+    },
+    {
         name: get_array_size,
         file: "get_array_size.snek",
         expected: "7",
