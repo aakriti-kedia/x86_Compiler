@@ -378,11 +378,16 @@ fn evaluate_addr_and_index_array(si: i32, addr_expr: &Expr, index_expr: &Expr, e
 fn is_array(v: Val) -> Vec<Instr> {
   let mut instr_vect = Vec::new();
   instr_vect.push(Instr::IComment("check if array".to_string()));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v.clone()));
   instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // last bit should be 1
   instr_vect.push(Instr::IJnc("throw_error".to_string()));
   instr_vect.push(Instr::ISar(Val::Reg(Reg::RBX), 1)); // 2nd last bit should be 0
   instr_vect.push(Instr::IJc("throw_error".to_string()));
+
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v.clone()));
+  instr_vect.push(Instr::ICmp(Val::Reg(Reg::RBX), Val::ImmInt(NIL_INT)));
+  instr_vect.push(Instr::IJe("throw_error".to_string()));
+
   instr_vect
 }
 

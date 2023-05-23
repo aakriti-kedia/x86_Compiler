@@ -747,6 +747,11 @@ runtime_error_tests! {
         expected: "invalid",
     },
     {
+        name: get_index_nil_addr,
+        file: "get_index_nil_addr.snek",
+        expected: "invalid",
+    },
+    {
         name: get_index_num,
         file: "get_index_num.snek",
         expected: "invalid",
