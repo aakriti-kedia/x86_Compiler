@@ -166,7 +166,7 @@ fn depth(e: &Expr) -> i32 {
     // for Expr::Function enumerate and find the max of depth(expr) + enumeration value
     Expr::Function(_, exprs) => exprs.iter().enumerate().map(|(i, expr)| depth(expr) + (i as i32)).max().unwrap_or(0),
     // todo: update, check function also
-    Expr::Array(exprs) => exprs.iter().enumerate().map(|(i, expr)| depth(expr) + (i as i32) + 3).max().unwrap_or(0),
+    Expr::Array(exprs) => exprs.iter().enumerate().map(|(i, expr)| depth(expr) + (i as i32) + 2).max().unwrap_or(0),
     Expr::GetArrayIndex(addr_expr, index_expr) => depth(addr_expr).max(depth(index_expr) + 1),
     Expr::SetArrayIndex(addr_expr, index_expr, value_expr) => depth(addr_expr).max(depth(index_expr) + 1).max(depth(value_expr) + 2),
     Expr::GetArraySize(addr_expr) => depth(addr_expr) + 1,
@@ -796,9 +796,7 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
 
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt((array_exprs.len() as i32).into()))); // size value to rax
 
-          let size_offset = (si + 1) * 8; // todo: should be odd -> si = 0;
-          let addr_offset = (si + 2) * 8;
-          instr_vector.push(Instr::IMov(Val::RegNegOffset(Reg::RSP, size_offset), Val::Reg(Reg::RAX))); // size value to stack
+          let addr_offset = (si + 1) * 8;
 
           // move [r15] into stack 
           instr_vector.push(Instr::IMov(Val::Reg(Reg::RCX), Val::Reg(Reg::R15)));
@@ -813,7 +811,7 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
           instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RCX, offset * 8), Val::Reg(Reg::RAX)));
           offset += 1;
 
-          let mut si_local = si + 3;
+          let mut si_local = si + 2;
           for expr in array_exprs.iter() {
             instr_vector.extend(compile_expr(expr, si_local, &env, &break_label, l));
             instr_vector.push(Instr::IMov(Val::Reg(Reg::RCX), Val::RegNegOffset(Reg::RSP, addr_offset)));
