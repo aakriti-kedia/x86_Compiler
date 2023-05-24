@@ -11,6 +11,9 @@
     (print (pointsAddition (points (* 2 3) -2) (points 5 10)))
     (print (pointsAddition (points (* 2 3) (- 2 4)) (points 5 10)))
     (print (pointsAddition (points (* 2 3) (- 4 2)) (points 5 10)))
+    (print (pointsAddition (points (* -2 3) (- 4 2)) (points 5 10)))
+    (print (pointsAddition (points (* -2 3) (- 2 4)) (points 5 10)))
+    (print (pointsAddition (points (* -2 3) (- 2 4)) (points 5 0)))
 )
 
 

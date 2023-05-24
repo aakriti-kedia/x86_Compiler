@@ -10,12 +10,12 @@ success_tests! {
     {
         name: points,
         file: "points.snek",
-        expected: "(5, 9)\n(20, 30)\n(5, 10)\n(4, 8)\n(11, 8)\n(11, 8)\n(11, 12)\n(11, 12)",
+        expected: "(5, 9)\n(20, 30)\n(5, 10)\n(4, 8)\n(11, 8)\n(11, 8)\n(11, 12)\n(-1, 12)\n(-1, 8)\n(-1, -2)\n(-1, -2)",
     },
     {
         name: bst,
         file: "bst.snek",
-        expected: "(10, nil, nil)\n(10, (8, nil, nil), nil)\n(10, (8, nil, nil), (12, nil, nil))\n(10, (8, (6, nil, nil), nil), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n9\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(8, (6, nil, nil), (9, nil, nil))\n(9, nil, nil)\ntrue\n(10, nil, nil)\n(10, (8, nil, nil), nil)\n(10, (8, nil, nil), (12, nil, nil))\n(10, (8, (6, nil, nil), nil), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n14\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(12, (11, nil, nil), (15, nil, nil))\n(15, nil, nil)\nnil\nfalse\nfalse",
+        expected: "(10, nil, nil)\n(10, (8, nil, nil), nil)\n(10, (8, nil, nil), nil)\n10\n(10, (8, nil, nil), nil)\ntrue\n(10, (8, nil, nil), nil)\n11\n(10, (8, nil, nil), nil)\nnil\nfalse\n(10, nil, nil)\n(10, (8, nil, nil), nil)\n(10, (8, nil, nil), (12, nil, nil))\n(10, (8, (6, nil, nil), nil), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n9\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(8, (6, nil, nil), (9, nil, nil))\n(9, nil, nil)\ntrue\n(10, nil, nil)\n(10, (8, nil, nil), nil)\n(10, (8, nil, nil), (12, nil, nil))\n(10, (8, (6, nil, nil), nil), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, nil, nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), nil))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n14\n(10, (8, (6, nil, nil), (9, nil, nil)), (12, (11, nil, nil), (15, nil, nil)))\n(12, (11, nil, nil), (15, nil, nil))\n(15, nil, nil)\nnil\nfalse\nfalse",
     },
     {
         name: points_fun,

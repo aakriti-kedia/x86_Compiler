@@ -53,7 +53,17 @@
     )
 )
 
-(block 
+(block
+	(let ((y 
+			(let ((x (insert_bst_elm nil 10))) 
+					(insert_bst_elm x 8))
+		))
+		(block
+            (print (search_bst y 10))
+            (print (search_bst y 11))
+        )
+	)
+
     (print 
         (search_bst
             (insert_bst_elm
@@ -90,5 +100,7 @@
         14)
     )
 )
+
+
 
 
