@@ -2,6 +2,7 @@ A compiler which implements compiling and parsing functionality for basic unary,
 
 It follows the following grammar
 
+```
 <prog> := <defn>* <expr>                (new!)
 <defn> := (fun (<name> <name>*) <expr>) (new!)
 <expr> :=
@@ -24,7 +25,11 @@ It follows the following grammar
 <op2> := + | - | * | < | > | >= | <= | =
 
 <binding> := (<identifier> <expr>)
+```
 
+Explicit tests can be viewed in the test directory \
+To run
 
-Explicit tests can be viewed in the test directory
-Command: make test
+```
+make test
+```
