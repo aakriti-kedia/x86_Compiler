@@ -52,6 +52,7 @@ enum Reg {
     RBX,
     RSP,
     RDI,
+    RSI,
     R15,
     RCX,
 }
@@ -110,6 +111,7 @@ enum Op2 {
     Minus,
     Times,
     Equal, 
+    StructuralEquality,
     Greater, 
     GreaterEqual, 
     Less, 
@@ -441,6 +443,7 @@ fn reg_str(reg_name: &Reg) -> String {
       Reg::RSP => "rsp", 
       Reg::RBX => "rbx", 
       Reg::RDI => "rdi", 
+      Reg::RSI => "rsi", 
       Reg::R15 => "r15",
       Reg::RCX => "rcx",
   }.to_string()
@@ -626,6 +629,32 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(TRUE_INT)));
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
                     instr_vector.push(Instr::ICmove(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
+                }
+                Op2::StructuralEquality => {
+
+                  let index = if si % 2 == 0 { si + 2 } else { si + 3 };
+                  let offset = index * 8;
+
+                  let rdi_offset = 0;
+                  let rsi_offset = 0;
+
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, stack_offset)));
+
+                  instr_vector.push(Instr::ISub(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));
+
+                  instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, rdi_offset), Val::Reg(Reg::RDI)));
+                  instr_vector.push(Instr::IMov(Val::RegPlusOffset(Reg::RSP, rsi_offset), Val::Reg(Reg::RSI)));
+        
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::Reg(Reg::RAX)));
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RSI), Val::Reg(Reg::RBX)));
+        
+                  instr_vector.push(Instr::ICall("snek_structural_equality".to_owned()));
+        
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RDI), Val::RegPlusOffset(Reg::RSP, rdi_offset)));
+                  instr_vector.push(Instr::IMov(Val::Reg(Reg::RSI), Val::RegPlusOffset(Reg::RSP, rsi_offset)));
+
+                  instr_vector.push(Instr::IAdd(Val::Reg(Reg::RSP), Val::ImmInt(offset.into())));         
+
                 }
                 Op2::Greater => {
                     let greater_label = new_label(l, "greater");
@@ -1128,6 +1157,7 @@ fn parse_expr(s: &Sexp,defs: &Vec<Definition>) -> Expr {
                 [Sexp::Atom(S(op)), e1, e2] if op == "-" => Expr::BinOp(Op2::Minus, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
                 [Sexp::Atom(S(op)), e1, e2] if op == "*" => Expr::BinOp(Op2::Times, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
                 [Sexp::Atom(S(op)), e1, e2] if op == "=" => Expr::BinOp(Op2::Equal, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
+                [Sexp::Atom(S(op)), e1, e2] if op == "==" => Expr::BinOp(Op2::StructuralEquality, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
                 [Sexp::Atom(S(op)), e1, e2] if op == ">" => Expr::BinOp(Op2::Greater, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
                 [Sexp::Atom(S(op)), e1, e2] if op == "<" => Expr::BinOp(Op2::Less, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
                 [Sexp::Atom(S(op)), e1, e2] if op == ">=" => Expr::BinOp(Op2::GreaterEqual, Box::new(parse_expr(e1, &defs)), Box::new(parse_expr(e2, &defs))),
@@ -1274,6 +1304,7 @@ fn main() -> std::io::Result<()> {
           global our_code_starts_here
           extern snek_print
           extern snek_error
+          extern snek_structural_equality
 
           {}
 
