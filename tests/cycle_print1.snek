@@ -1,0 +1,6 @@
+(let ((x (array 10 20)))
+    (block
+        (setIndex x 1 x)
+        (setIndex x 2 x)
+        (print x)
+))

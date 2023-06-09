@@ -3,6 +3,31 @@ mod infra;
 // Your tests go here!
 success_tests! {
     {
+        name: cycle_print1,
+        file: "cycle_print1.snek",
+        expected: "((array <cyclic>), (array <cyclic>))\n((array <cyclic>), (array <cyclic>))",
+    },
+    {
+        name: cycle_print2,
+        file: "cycle_print2.snek",
+        expected: "((30, (array <cyclic>)), 20)\n(30, ((array <cyclic>), 20))\n((40, 45, (array <cyclic>)), 20, 30)\n(40, 45, ((array <cyclic>), 20, 30))\n(40, 45, ((array <cyclic>), 20, 30))",
+    },
+    {
+        name: cycle_print3,
+        file: "cycle_print3.snek",
+        expected: "(((array <cyclic>), 40), (20, (array <cyclic>)))\n(20, (((array <cyclic>), 40), (array <cyclic>)))\n(((array <cyclic>), (20, (array <cyclic>))), 40)\n(((array <cyclic>), (20, (array <cyclic>))), 40)",
+    },
+    {
+        name: structural_reference_equality,
+        file: "structural_reference_equality.snek",
+        expected: "true\ntrue\nfalse\ntrue\ntrue\nfalse\nfalse\nfalse\nfalse\ntrue\ntrue\nfalse\nfalse\nfalse\nfalse",
+    },
+    {
+        name: cyclic_print_equality,
+        file: "cyclic_print_equality.snek",
+        expected: "(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30))\false\ntrue\nfalse",
+    },
+    {
         name: simple_examples,
         file: "simple_examples.snek",
         expected: "(10, nil, 12)\n(3, 4, 3, 5, 5)\n(1, 2)\n(1, (2, 3), (4, (5, 6)), (7, (8, 9)))\n13\n5\n(4, (5, 6))\n(2, 6, 44, 5)\n(2, 6, 4, 55)\n(1, (2, 3), 5, (7, (8, 9)))\n(1, (2, 3), (4, 5, 6, 7, 8), (7, (8, 9)))\n(1, (2, 3), (41, (42, 43), (44, 45, (46, (47, 48)))), (7, (8, 9)))\n7\n7",
@@ -95,7 +120,7 @@ success_tests! {
     {
         name: set_cyclic,
         file: "set_cyclic.snek",
-        expected: "(43, 22, (75, 26, 34, (12, 34, 56, 78, 90, (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, (pair <cyclic>), 13, 14, 15))))\n(43, 22, (75, 26, 34, (12, 34, 56, 78, 90, (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, (pair <cyclic>), 13, 14, 15))))",
+        expected: "(43, 22, (75, 26, 34, (12, 34, 56, 78, 90, (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, (array <cyclic>), 13, 14, 15))))\n(43, 22, (75, 26, 34, (12, 34, 56, 78, 90, (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, (array <cyclic>), 13, 14, 15))))",
     },
     {
         name: let_array,
