@@ -1,0 +1,22 @@
+(block
+    (let (
+            (x (array 10 20))
+            (y (array 30 40))
+        )
+        (block
+            (setIndex x 1 y)
+            (setIndex y 2 x)
+            (print x)
+            (print y)
+    ))
+
+    (let (
+            (x (array 10 20 30))
+            (y (array 40 45 x))
+        )
+        (block
+            (setIndex x 1 y)
+            (print x)
+            (print y)
+    ))
+)

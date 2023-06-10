@@ -1,0 +1,40 @@
+(block
+    (let (
+            (x (array 10 20))
+            (y (array 30 40))
+
+            (x1 (array y 20))
+            (y1 (array 30 x))
+
+            (x2 (array y1 20))
+            (y2 (array 30 x1))
+        )
+        (block
+            (setIndex x 1 y)
+            (setIndex y 2 x)
+            (print x)
+            (print y)
+
+            (print x1)
+            (print y1)
+
+            (print x2)
+            (print y2)
+
+            (print (= x x1))
+            (print (= x x2))
+            (print (= x1 x2))
+
+            (print (= y y1))
+            (print (= y y2))
+            (print (= y1 y2))
+
+            (print (== x x1))
+            (print (== x x2))
+            (print (== x1 x2))
+
+            (print (== y y1))
+            (print (== y y2))
+            (print (== y1 y2))
+    ))
+)

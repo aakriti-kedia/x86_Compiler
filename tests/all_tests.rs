@@ -18,6 +18,21 @@ success_tests! {
         expected: "(((array <cyclic>), 40), (20, (array <cyclic>)))\n(20, (((array <cyclic>), 40), (array <cyclic>)))\n(((array <cyclic>), (20, (array <cyclic>))), 40)\n(((array <cyclic>), (20, (array <cyclic>))), 40)",
     },
     {
+        name: cycle_equal1,
+        file: "cycle_equal1.snek",
+        expected: "((array <cyclic>), (array <cyclic>))\n((array <cyclic>), (array <cyclic>))\ntrue\ntrue\nfalse\nfalse\ntrue\ntrue",
+    },
+    {
+        name: cycle_equal2,
+        file: "cycle_equal2.snek",
+        expected: "((30, (array <cyclic>)), 20)\n(30, ((array <cyclic>), 20))\n((30, ((array <cyclic>), 20)), 20)\n(30, ((30, (array <cyclic>)), 20))\n((30, ((30, (array <cyclic>)), 20)), 20)\n(30, ((30, ((array <cyclic>), 20)), 20))\nfalse\nfalse\nfalse\nfalse\nfalse\nfalse\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue",
+    },
+    {
+        name: cycle_equal3,
+        file: "cycle_equal3.snek",
+        expected: "(((array <cyclic>), 40), (20, (array <cyclic>)))\n(20, (((array <cyclic>), 40), (array <cyclic>)))\n(((array <cyclic>), (20, (array <cyclic>))), 40)\n(20, (((array <cyclic>), 40), (20, (array <cyclic>))))\ntrue\ntrue\ntrue\nfalse\ntrue\nfalse\nfalse",
+    },
+    {
         name: structural_reference_equality,
         file: "structural_reference_equality.snek",
         expected: "true\ntrue\nfalse\ntrue\ntrue\nfalse\nfalse\nfalse\nfalse\ntrue\ntrue\nfalse\nfalse\nfalse\nfalse",
@@ -25,7 +40,7 @@ success_tests! {
     {
         name: cyclic_print_equality,
         file: "cyclic_print_equality.snek",
-        expected: "(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30))\false\ntrue\nfalse",
+        expected: "(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30))\nfalse\ntrue\nfalse",
     },
     {
         name: simple_examples,

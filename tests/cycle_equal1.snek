@@ -1,0 +1,22 @@
+(let (
+        (x (array 10 20))
+        (y (array 10 20))
+    )
+    (block
+        (setIndex x 1 x)
+        (setIndex x 2 x)
+
+        (setIndex y 1 y)
+        (setIndex y 2 y)
+
+        (print x)
+        (print y)
+        (print (== x x))
+        (print (== y y))
+        (print (== x y))
+
+        (setIndex y 1 x)
+        (print (== x y))
+        (setIndex y 2 x)
+        (print (== x y))
+))

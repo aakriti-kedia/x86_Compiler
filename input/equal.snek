@@ -1,0 +1,29 @@
+(block
+    (let ((x (array 10 20 30)))
+        (block
+            (print (= x x))
+            (print (== x x))
+            (print (= x (array 10 20 30)))
+            (print (== x (array 10 20 30)))
+    ))
+
+    (let (
+            (x (array 10 20 (array 10 20)))
+            (y (array 10 20 (array 10 20)))
+            (z1 (array 20 10 (array 10 20)))
+            (z2 (array 10 20 10 20))
+        )
+        (block
+            (print (= x x))
+            (print (= x y))
+            (print (= x z1))
+            (print (= x z2))
+            (print (= x (array x)))
+
+            (print (== x x))
+            (print (== x y))
+            (print (== x z1))
+            (print (== x z2))
+            (print (== x (array x)))
+    ))
+)

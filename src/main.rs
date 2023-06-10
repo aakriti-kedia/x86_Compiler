@@ -636,7 +636,7 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
                   let offset = index * 8;
 
                   let rdi_offset = 0;
-                  let rsi_offset = 0;
+                  let rsi_offset = 8;
 
                   instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::RegNegOffset(Reg::RSP, stack_offset)));
 

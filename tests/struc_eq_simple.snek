@@ -1,0 +1,7 @@
+(let (
+        (x (array 10 20 30))
+        (y (array 40 45 x))
+    )
+    (block
+        (print (== x y))
+))

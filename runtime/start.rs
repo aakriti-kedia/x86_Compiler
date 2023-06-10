@@ -46,22 +46,19 @@ pub extern "C" fn x01snek_structural_equality(val1: i64, val2: i64) -> i64 {
 }
 
 fn snek_to_str(val: i64, seen : &mut Vec<i64>) -> String {
-    // println!("val - {}", val);
     if val == TRUE_INT { return format!("true"); }
     else if val == FALSE_INT { return format!("false"); }
     else if val % 2 == 0 {
         return format!("{}", (val >> 1));
     } else if val == NIL_INT {
         return format!("nil");
-    } else if val & 1 == 1 { // indicates array / list / tuple / multiple values
-        // println!("array addr - {}", val);
+    } else if val & 1 == 1 { // indicates array
         if seen.contains(&val)  { return "(array <cyclic>)".to_string() }
         seen.push(val);
         let addr = (val - 1) as *const i64;
         let mut array_str = String::new();
         array_str.push_str("(");
         let size = unsafe { *addr };
-        // println!("size - {}", size);
         for i in 0..size {
             let value = unsafe { *addr.offset(i as isize + 1) };
             array_str.push_str(&snek_to_str(value, seen).to_string());
@@ -80,40 +77,36 @@ fn snek_to_str(val: i64, seen : &mut Vec<i64>) -> String {
 
 fn check_structural_eq(val1: i64, val2: i64, seen: &mut Vec<(i64, i64)>) -> bool {
     if ((val1 & 1) == 0 && (val2 & 1) == 0) || ((val1 & 3) == 3 && (val2 & 3) == 3) {
-//         println!("A");
         val1 == val2
-    } else { // arrays 
+    } else if (val1 & 3) == 1 && (val2 & 3) == 1 { // arrays 
         if val1 == val2 {
-            // println!("B");
             return true;
         } else if seen.contains(&(val1, val2)) {
             return false;
         }
         else {
-            // println!("C");
             seen.push((val1, val2));
             let addr_v1 = (val1 - 1) as *const i64;
             let addr_v2 = (val2 - 1) as *const i64;
             let size_v1 = unsafe { *addr_v1.offset(0) };
             let size_v2 = unsafe { *addr_v2.offset(0) };
-            // println!("size1 = {}", size_v1);
-            // println!("size2 = {}", size_v2);
             if size_v1 != size_v2 {
-                // println!("D");
+                seen.pop();
                 return false;
             }
             for i in 0..size_v1 {
                 let value_v1 = unsafe { *addr_v1.offset(i as isize + 1) };
                 let value_v2 = unsafe { *addr_v2.offset(i as isize + 1) };
                 if !check_structural_eq(value_v1, value_v2, seen) {
-                    // println!("E");
+                    seen.pop();
                     return false;
                 }
             }
         }
         seen.pop();
-        // println!("F");
         return true;
+    } else { // type mismatch
+        return false;
     }
 }
 
