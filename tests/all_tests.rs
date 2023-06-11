@@ -20,7 +20,7 @@ success_tests! {
     {
         name: cycle_equal1,
         file: "cycle_equal1.snek",
-        expected: "((array <cyclic>), (array <cyclic>))\n((array <cyclic>), (array <cyclic>))\ntrue\ntrue\nfalse\nfalse\ntrue\ntrue",
+        expected: "((array <cyclic>), (array <cyclic>))\n((array <cyclic>), (array <cyclic>))\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue",
     },
     {
         name: cycle_equal2,
@@ -40,7 +40,7 @@ success_tests! {
     {
         name: cyclic_print_equality,
         file: "cyclic_print_equality.snek",
-        expected: "(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30))\nfalse\ntrue\nfalse",
+        expected: "(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (array <cyclic>), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30), 30)\n(10, (10, (10, (array <cyclic>), 30), 30))\ntrue\ntrue\nfalse",
     },
     {
         name: simple_examples,

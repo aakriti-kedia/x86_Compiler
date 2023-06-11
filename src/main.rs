@@ -65,9 +65,10 @@ enum Instr {
     IMul(Val, Val),
     ICmp(Val, Val),
     IXor(Val, Val),
+    IOr(Val, Val),
     ITest(Val, Val),
     ICmove(Val, Val),
-    IAnd(Val, Val),
+    // IAnd(Val, Val),
     IJg(String),
     IJge(String),
     IJl(String),
@@ -75,7 +76,7 @@ enum Instr {
     ILabel(String, Vec<Instr>),
     IJe(String),
     IJmp(String),
-    IJne(String),
+    // IJne(String),
     // IPush(Val),
     // IPop(Val),
     // IJz(String),
@@ -292,29 +293,41 @@ fn check_if_bool(v: Val) -> Vec<Instr> {
   instr_vect
 }
 
-fn check_bool_num_type_match(v1: Val, v2: Val) -> Vec<Instr> {
+fn error_if_type_mismatch(v1: Val, v2: Val, match_end_label: &String) -> Vec<Instr> {
   let mut instr_vect = Vec::new();
-  instr_vect.push(Instr::IComment("check_bool_num_type_match".to_string()));
+  instr_vect.push(Instr::IComment("check_type_match_result".to_string()));
+
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1.clone()));
+  instr_vect.push(Instr::IXor(Val::Reg(Reg::RBX), v2.clone()));
+  instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::ImmInt(3)));
+  instr_vect.push(Instr::IJe(match_end_label.to_string())); // jz -> all matched
+
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1));
-  instr_vect.push(Instr::IXor(Val::Reg(Reg::RBX), v2));
+  instr_vect.push(Instr::IOr(Val::Reg(Reg::RBX), v2));
   instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::ImmInt(1)));
-  instr_vect.push(Instr::IJne("throw_error".to_string()));
+  instr_vect.push(Instr::IJe(match_end_label.to_string())); // last digit is 0
+
+  instr_vect.push(Instr::IJmp("throw_error".to_string()));
   instr_vect
 }
 
-fn check_type_match(v1: Val, v2: Val) -> Vec<Instr> {
+fn check_type_match_result(v1: Val, v2: Val, match_end_label: &String) -> Vec<Instr> {
   let mut instr_vect = Vec::new();
-  instr_vect.push(Instr::IComment("check_type_match".to_string()));
+  instr_vect.push(Instr::IComment("check_type_match_result".to_string()));
+
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1.clone()));
+  instr_vect.push(Instr::IXor(Val::Reg(Reg::RBX), v2.clone()));
+  instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::ImmInt(3)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(TRUE_INT)));
+  instr_vect.push(Instr::IJe(match_end_label.to_string())); // jz -> all matched
+
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), v1));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RCX), v2));
+  instr_vect.push(Instr::IOr(Val::Reg(Reg::RBX), v2));
+  instr_vect.push(Instr::ITest(Val::Reg(Reg::RBX), Val::ImmInt(1)));
+  instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(TRUE_INT)));
+  instr_vect.push(Instr::IJe(match_end_label.to_string())); // last digit is 0 for both
 
-  instr_vect.push(Instr::IAnd(Val::Reg(Reg::RBX), Val::ImmInt(3))); // to isolate the last two digits
-  instr_vect.push(Instr::IAnd(Val::Reg(Reg::RCX), Val::ImmInt(3))); // to isolate the last two digits
-
-  instr_vect.push(Instr::ICmp(Val::Reg(Reg::RBX), Val::Reg(Reg::RCX)));
-  instr_vect.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(TRUE_INT)));
   instr_vect.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
-  instr_vect.push(Instr::ICmove(Val::Reg(Reg::RAX), Val::Reg(Reg::RBX)));
   instr_vect
 }
 
@@ -402,7 +415,7 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::IMul(v1, v2) => format!("imul {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::ICmp(v1, v2) => format!("cmp {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::ICmove(v1, v2) => format!("cmove {}, {}", val_to_str(v1), val_to_str(v2)),
-      Instr::IAnd(v1, v2) => format!("and {}, {}", val_to_str(v1), val_to_str(v2)),
+      // Instr::IAnd(v1, v2) => format!("and {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::IJg(label) => format!("jg {}", label),
       Instr::IJge(label) => format!("jge {}", label),
       Instr::IJl(label) => format!("jl {}", label),
@@ -421,8 +434,9 @@ fn instr_to_str(i: &Instr) -> String {
       Instr::ISar(v1, bits) => format!("sar {}, {}", val_to_str(v1), bits),
       Instr::ISal(v1, bits) => format!("sal {}, {}", val_to_str(v1), bits),
       Instr::IJmp(label) => format!("jmp {}", label),
-      Instr::IJne(label) => format!("jne {}", label),
+      // Instr::IJne(label) => format!("jne {}", label),
       Instr::IXor(v1, v2) => format!("xor {}, {}", val_to_str(v1), val_to_str(v2)),
+      Instr::IOr(v1, v2) => format!("or {}, {}", val_to_str(v1), val_to_str(v2)),
       Instr::ITest(v1, v2) => {
         match v1 {
           Val::RegNegOffset(_, _) | Val::RegPlusOffset(_, _) => format!("test word{}, {}", val_to_str(v1), val_to_str(v2)),
@@ -624,7 +638,9 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
                 Op2::Equal => {
                     let v1 = Val::Reg(Reg::RAX);
                     let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
-                    instr_vector.extend(check_bool_num_type_match(v1.clone(), v2.clone()));
+                    let match_end_label = new_label(l, "equal_type_match_end");
+                    instr_vector.extend(error_if_type_mismatch(v1.clone(), v2.clone(), &match_end_label));
+                    instr_vector.push(Instr::ILabel(match_end_label, Vec::new()));
                     instr_vector.push(Instr::ICmp(v1.clone(), v2.clone()));
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RBX), Val::ImmInt(TRUE_INT)));
                     instr_vector.push(Instr::IMov(Val::Reg(Reg::RAX), Val::ImmInt(FALSE_INT)));
@@ -741,7 +757,9 @@ fn compile_expr(e: &Expr, si: i32, env: & HashMap<String, i32>, break_label: &St
                 Op2::CheckTypeMatch => {
                   let v1 = Val::Reg(Reg::RAX);
                   let v2 = Val::RegNegOffset(Reg::RSP, stack_offset);
-                  instr_vector.extend(check_type_match(v1.clone(), v2.clone()));
+                  let match_end_label = new_label(l, "check_type_match_end");
+                  instr_vector.extend(check_type_match_result(v1.clone(), v2.clone(), &match_end_label));
+                  instr_vector.push(Instr::ILabel(match_end_label, Vec::new()));
                 }
 
             }
@@ -956,7 +974,6 @@ fn compile_prog(prog: &Program) -> (String, String) {
 
 fn compile_error_defs() -> String {
   // write assembly instructions to align the code before snek_error is called
-
   //todo: check
   return "throw_error:
           mov rdi, 7
