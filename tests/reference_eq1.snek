@@ -1,0 +1,8 @@
+(let (
+        (x (array 10 20 30))
+    )
+    (block
+        (print (= x x))
+        (print (= x (array 10 20 30)))
+        (print (= x (array x)))
+))

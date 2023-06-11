@@ -82,7 +82,7 @@ fn check_structural_eq(val1: i64, val2: i64, seen: &mut Vec<(i64, i64)>) -> bool
         if val1 == val2 {
             return true;
         } else if seen.contains(&(val1, val2)) {
-            return false;
+            return true;
         }
         else {
             seen.push((val1, val2));

@@ -5,4 +5,5 @@
     (print (checkTypeMatch 5 (array 2)))
     (print (checkTypeMatch (array 3) (array 2)))
     (print (checkTypeMatch (array 3 4) (array 2)))
+    (print (checkTypeMatch (array 3 4) true))
 )

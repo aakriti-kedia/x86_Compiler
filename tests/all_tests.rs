@@ -10,7 +10,7 @@ success_tests! {
     {
         name: cycle_print2,
         file: "cycle_print2.snek",
-        expected: "((30, (array <cyclic>)), 20)\n(30, ((array <cyclic>), 20))\n((40, 45, (array <cyclic>)), 20, 30)\n(40, 45, ((array <cyclic>), 20, 30))\n(40, 45, ((array <cyclic>), 20, 30))",
+        expected: "(((array <cyclic>)), 20)\n(((array <cyclic>), 20))\n((40, 45, (array <cyclic>)), 20, 30)\n(40, 45, ((array <cyclic>), 20, 30))\n(40, 45, ((array <cyclic>), 20, 30))",
     },
     {
         name: cycle_print3,
@@ -31,6 +31,11 @@ success_tests! {
         name: cycle_equal3,
         file: "cycle_equal3.snek",
         expected: "(((array <cyclic>), 40), (20, (array <cyclic>)))\n(20, (((array <cyclic>), 40), (array <cyclic>)))\n(((array <cyclic>), (20, (array <cyclic>))), 40)\n(20, (((array <cyclic>), 40), (20, (array <cyclic>))))\ntrue\ntrue\ntrue\nfalse\ntrue\nfalse\nfalse",
+    },
+    {
+        name: reference_eq1,
+        file: "reference_eq1.snek",
+        expected: "true\nfalse\nfalse\nfalse",
     },
     {
         name: structural_reference_equality,
@@ -170,7 +175,7 @@ success_tests! {
     {
         name: check_type_match,
         file: "check_type_match.snek",
-        expected: "false\nfalse\ntrue\nfalse\ntrue\ntrue\ntrue",
+        expected: "false\nfalse\ntrue\nfalse\ntrue\ntrue\nfalse\nfalse",
     },
     {
         name: fact,
