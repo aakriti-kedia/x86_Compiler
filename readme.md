@@ -3,8 +3,8 @@ A compiler which implements compiling and parsing functionality for basic unary,
 It follows the following grammar
 
 ```
-<prog> := <defn>* <expr>                (new!)
-<defn> := (fun (<name> <name>*) <expr>) (new!)
+<prog> := <defn>* <expr>
+<defn> := (fun (<name> <name>*) <expr>) 
 <expr> :=
   | <number>
   | true
@@ -19,10 +19,16 @@ It follows the following grammar
   | (block <expr>+)
   | (loop <expr>)
   | (break <expr>)
-  | (<name> <expr>*)                    (new!)
+  | (<name> <expr>*)  
+  | nil   
+  | (array (<expr>*)) 
+  | (getIndex <expr> <expr>)  
+  | (setIndex <expr> <expr> <expr>)   
+  | (getSize <expr>)  
 
-<op1> := add1 | sub1 | isnum | isbool | print (new!)
-<op2> := + | - | * | < | > | >= | <= | =
+
+<op1> := add1 | sub1 | isnum | isbool | print | isnil 
+<op2> := + | - | * | < | > | >= | <= | = | checkTypeMatch 
 
 <binding> := (<identifier> <expr>)
 ```
